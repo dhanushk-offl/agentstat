@@ -1,0 +1,919 @@
+{
+  "atlascloud": {
+    "url": "https://api.atlascloud.ai/public/v1/balance",
+    "guards": {
+      "/object": "balance",
+      "/scope": "account",
+      "/available/currency": "usd"
+    },
+    "required": [
+      "/available/value"
+    ],
+    "balances": [
+      {
+        "id": "available",
+        "amount": {
+          "path": "/available/value"
+        },
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        }
+      }
+    ]
+  },
+  "linkup": {
+    "url": "https://api.linkup.so/v1/credits/balance",
+    "required": [
+      "/balance"
+    ],
+    "balances": [
+      {
+        "id": "available",
+        "amount": {
+          "path": "/balance"
+        },
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        }
+      }
+    ]
+  },
+  "vercel": {
+    "url": "https://ai-gateway.vercel.sh/v1/credits",
+    "required": [
+      "/balance",
+      "/total_used"
+    ],
+    "balances": [
+      {
+        "id": "available",
+        "amount": {
+          "path": "/balance"
+        },
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        }
+      }
+    ],
+    "spend": [
+      {
+        "id": "lifetime",
+        "amount": {
+          "path": "/total_used"
+        },
+        "currency": "USD"
+      }
+    ]
+  },
+  "moonshot": {
+    "url": "https://api.moonshot.ai/v1/users/me/balance",
+    "guards": {
+      "/code": 0,
+      "/status": true
+    },
+    "required": [
+      "/data/available_balance"
+    ],
+    "balances": [
+      {
+        "id": "available_balance",
+        "amount": {
+          "path": "/data/available_balance"
+        },
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        }
+      },
+      {
+        "id": "cash_balance",
+        "amount": {
+          "path": "/data/cash_balance"
+        },
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        }
+      },
+      {
+        "id": "voucher_balance",
+        "amount": {
+          "path": "/data/voucher_balance"
+        },
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        }
+      }
+    ]
+  },
+  "sofya": {
+    "url": "https://sofya.co/v1/auth/me",
+    "balances": [
+      {
+        "id": "credits",
+        "amount": {
+          "path": "/credits"
+        },
+        "unit": {
+          "kind": "credits",
+          "name": "sofya"
+        }
+      },
+      {
+        "id": "plan_credits",
+        "amount": {
+          "path": "/plan_credits"
+        },
+        "unit": {
+          "kind": "credits",
+          "name": "sofya"
+        }
+      },
+      {
+        "id": "purchased_credits",
+        "amount": {
+          "path": "/purchased_credits"
+        },
+        "unit": {
+          "kind": "credits",
+          "name": "sofya"
+        }
+      }
+    ]
+  },
+  "aerostack": {
+    "url": "https://api.aerostack.dev/api/billing/usage",
+    "required": [
+      "/usage/ai_tokens"
+    ],
+    "plan": "/tier",
+    "windows": [
+      {
+        "id": "monthly-tokens",
+        "unit": {
+          "kind": "tokens"
+        },
+        "used": {
+          "path": "/usage/ai_tokens/used"
+        },
+        "limit": {
+          "path": "/usage/ai_tokens/limit"
+        },
+        "kind": "calendar"
+      }
+    ]
+  },
+  "tavily": {
+    "url": "https://api.tavily.com/usage",
+    "required": [
+      "/account/plan_usage",
+      "/account/plan_limit",
+      "/key/usage"
+    ],
+    "plan": "/account/current_plan",
+    "windows": [
+      {
+        "id": "plan",
+        "unit": {
+          "kind": "credits",
+          "name": "tavily"
+        },
+        "used": {
+          "path": "/account/plan_usage"
+        },
+        "limit": {
+          "path": "/account/plan_limit"
+        }
+      },
+      {
+        "id": "key",
+        "unit": {
+          "kind": "credits",
+          "name": "tavily"
+        },
+        "null_unlimited": true,
+        "used": {
+          "path": "/key/usage"
+        },
+        "limit": {
+          "path": "/key/limit"
+        }
+      },
+      {
+        "id": "paygo",
+        "unit": {
+          "kind": "credits",
+          "name": "tavily"
+        },
+        "used": {
+          "path": "/account/paygo_usage"
+        },
+        "limit": {
+          "path": "/account/paygo_limit"
+        }
+      }
+    ]
+  },
+  "poe": {
+    "url": "https://api.poe.com/usage/current_balance",
+    "required": [
+      "/current_point_balance"
+    ],
+    "balances": [
+      {
+        "id": "points",
+        "amount": {
+          "path": "/current_point_balance"
+        },
+        "unit": {
+          "kind": "credits",
+          "name": "poe-points"
+        }
+      }
+    ]
+  },
+  "ollama": {
+    "url": "https://ollama.com/api/balance",
+    "windows": [
+      {
+        "id": "included",
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        },
+        "used": {
+          "path": "/included/allowance_usd",
+          "subtract": "/included/balance_usd"
+        },
+        "limit": {
+          "path": "/included/allowance_usd"
+        },
+        "remaining": {
+          "path": "/included/balance_usd"
+        },
+        "kind": "calendar",
+        "reset": "/included/period/until"
+      }
+    ],
+    "balances": [
+      {
+        "id": "purchased",
+        "amount": {
+          "path": "/purchased/balance_usd"
+        },
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        }
+      }
+    ]
+  },
+  "elevenlabs": {
+    "url": "https://api.elevenlabs.io/v1/user/subscription",
+    "auth": "xi-api-key",
+    "required": [
+      "/character_count",
+      "/character_limit"
+    ],
+    "plan": "/tier",
+    "windows": [
+      {
+        "id": "characters",
+        "unit": {
+          "kind": "characters"
+        },
+        "used": {
+          "path": "/character_count"
+        },
+        "limit": {
+          "path": "/character_limit"
+        },
+        "kind": "calendar",
+        "reset": "/next_character_count_reset_unix"
+      },
+      {
+        "id": "voice-slots",
+        "unit": {
+          "kind": "slots"
+        },
+        "used": {
+          "path": "/voice_slots_used"
+        },
+        "limit": {
+          "path": "/voice_limit"
+        }
+      },
+      {
+        "id": "professional-voices",
+        "unit": {
+          "kind": "slots"
+        },
+        "used": {
+          "path": "/professional_voice_slots_used"
+        },
+        "limit": {
+          "path": "/professional_voice_limit"
+        }
+      }
+    ]
+  },
+  "devpass": {
+    "url": "https://api.llmgateway.io/v1/key",
+    "required": [
+      "/data/usage",
+      "/data/devPlan"
+    ],
+    "plan": "/data/devPlan",
+    "windows": [
+      {
+        "id": "key-all-time",
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        },
+        "null_unlimited": true,
+        "used": {
+          "path": "/data/usage"
+        },
+        "limit": {
+          "path": "/data/limit"
+        }
+      },
+      {
+        "id": "plan",
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        },
+        "used": {
+          "path": "/data/devPlanCreditsUsed"
+        },
+        "limit": {
+          "path": "/data/devPlanCreditsLimit"
+        },
+        "remaining": {
+          "path": "/data/devPlanCreditsRemaining"
+        }
+      },
+      {
+        "id": "premium-weekly",
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        },
+        "used": {
+          "path": "/data/devPlanPremiumCreditsUsed"
+        },
+        "limit": {
+          "path": "/data/devPlanPremiumWeeklyLimit"
+        },
+        "kind": "rolling",
+        "reset": "/data/devPlanPremiumWeekResetsAt",
+        "duration": 604800
+      }
+    ]
+  },
+  "zenmux": {
+    "url": "https://zenmux.ai/api/v1/management/subscription/detail",
+    "guards": {
+      "/success": true
+    },
+    "required": [
+      "/data/quota_5_hour",
+      "/data/quota_7_day"
+    ],
+    "plan": "/data/plan/tier",
+    "windows": [
+      {
+        "id": "five-hour",
+        "unit": {
+          "kind": "credits",
+          "name": "zenmux-flows"
+        },
+        "percent_fraction": true,
+        "used": {
+          "path": "/data/quota_5_hour/used_flows"
+        },
+        "limit": {
+          "path": "/data/quota_5_hour/max_flows"
+        },
+        "remaining": {
+          "path": "/data/quota_5_hour/remaining_flows"
+        },
+        "kind": "rolling",
+        "reset": "/data/quota_5_hour/resets_at",
+        "duration": 18000,
+        "percent": "/data/quota_5_hour/usage_percentage"
+      },
+      {
+        "id": "weekly",
+        "unit": {
+          "kind": "credits",
+          "name": "zenmux-flows"
+        },
+        "percent_fraction": true,
+        "used": {
+          "path": "/data/quota_7_day/used_flows"
+        },
+        "limit": {
+          "path": "/data/quota_7_day/max_flows"
+        },
+        "remaining": {
+          "path": "/data/quota_7_day/remaining_flows"
+        },
+        "kind": "rolling",
+        "reset": "/data/quota_7_day/resets_at",
+        "duration": 604800,
+        "percent": "/data/quota_7_day/usage_percentage"
+      }
+    ]
+  },
+  "xkiro": {
+    "url": "https://api.xkiro.com/v1/usage",
+    "guards": {
+      "/object": "usage"
+    },
+    "required": [
+      "/free_tokens"
+    ],
+    "plan": "/plan",
+    "windows": [
+      {
+        "id": "daily-free-tokens",
+        "unit": {
+          "kind": "tokens"
+        },
+        "used": {
+          "path": "/free_tokens/used_today"
+        },
+        "limit": {
+          "path": "/free_tokens/limit_per_day"
+        },
+        "remaining": {
+          "path": "/free_tokens/remaining"
+        },
+        "kind": "calendar",
+        "duration": 86400
+      }
+    ]
+  },
+  "openrouter": {
+    "url": "https://openrouter.ai/api/v1/key",
+    "required": [
+      "/data/usage"
+    ],
+    "windows": [
+      {
+        "id": "key",
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        },
+        "null_unlimited": true,
+        "used": {
+          "path": "/data/usage"
+        },
+        "limit": {
+          "path": "/data/limit"
+        },
+        "remaining": {
+          "path": "/data/limit_remaining"
+        }
+      }
+    ],
+    "spend": [
+      {
+        "id": "lifetime",
+        "amount": {
+          "path": "/data/usage"
+        },
+        "currency": "USD"
+      },
+      {
+        "id": "daily",
+        "amount": {
+          "path": "/data/usage_daily"
+        },
+        "currency": "USD"
+      },
+      {
+        "id": "weekly",
+        "amount": {
+          "path": "/data/usage_weekly"
+        },
+        "currency": "USD"
+      },
+      {
+        "id": "monthly",
+        "amount": {
+          "path": "/data/usage_monthly"
+        },
+        "currency": "USD"
+      }
+    ]
+  },
+  "fal": {
+    "url": "https://api.fal.ai/v1/account/billing?expand=credits",
+    "auth": "fal",
+    "required": [
+      "/credits/current_balance"
+    ],
+    "currency_path": "/credits/currency",
+    "balances": [
+      {
+        "id": "available",
+        "amount": {
+          "path": "/credits/current_balance"
+        },
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        }
+      }
+    ]
+  },
+  "venice": {
+    "url": "https://api.venice.ai/api/v1/billing/balance",
+    "required": [
+      "/balances"
+    ],
+    "balances": [
+      {
+        "id": "usd",
+        "amount": {
+          "path": "/balances/usd"
+        },
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        }
+      },
+      {
+        "id": "diem",
+        "amount": {
+          "path": "/balances/diem"
+        },
+        "unit": {
+          "kind": "credits",
+          "name": "DIEM"
+        }
+      }
+    ]
+  },
+  "nous": {
+    "url": "https://portal.nousresearch.com/api/oauth/account",
+    "plan": "/subscription/plan",
+    "windows": [
+      {
+        "id": "subscription",
+        "unit": {
+          "kind": "credits",
+          "name": "nous"
+        },
+        "used": {
+          "path": "/subscription/monthly_credits",
+          "subtract": "/subscription/credits_remaining|/paid_service_access/subscription_credits_remaining"
+        },
+        "limit": {
+          "path": "/subscription/monthly_credits"
+        },
+        "remaining": {
+          "path": "/subscription/credits_remaining|/paid_service_access/subscription_credits_remaining"
+        },
+        "kind": "calendar",
+        "reset": "/subscription/current_period_end"
+      }
+    ],
+    "balances": [
+      {
+        "id": "purchased",
+        "amount": {
+          "path": "/purchased_credits_remaining|/paid_service_access/purchased_credits_remaining"
+        },
+        "unit": {
+          "kind": "credits",
+          "name": "nous"
+        }
+      },
+      {
+        "id": "total",
+        "amount": {
+          "path": "/paid_service_access/total_usable_credits"
+        },
+        "unit": {
+          "kind": "credits",
+          "name": "nous"
+        }
+      },
+      {
+        "id": "subscription",
+        "amount": {
+          "path": "/subscription/credits_remaining|/paid_service_access/subscription_credits_remaining"
+        },
+        "unit": {
+          "kind": "credits",
+          "name": "nous"
+        }
+      }
+    ]
+  },
+  "gitkraken": {
+    "url": "https://api.gitkraken.dev/v1/ai-tasks/usage",
+    "headers": {
+      "Client-Name": "agentstat",
+      "Client-Version": "0.1.0"
+    },
+    "required": [
+      "/data/used",
+      "/data/limit"
+    ],
+    "windows": [
+      {
+        "id": "personal",
+        "unit": {
+          "kind": "credits",
+          "name": "gitkraken"
+        },
+        "unlimited_value": "-1",
+        "used": {
+          "path": "/data/used"
+        },
+        "limit": {
+          "path": "/data/limit"
+        },
+        "kind": "rolling",
+        "reset": "/data/resetsOn",
+        "duration": 604800
+      },
+      {
+        "id": "organization",
+        "unit": {
+          "kind": "credits",
+          "name": "gitkraken"
+        },
+        "unlimited_value": "-1",
+        "used": {
+          "path": "/data/organization/used"
+        },
+        "limit": {
+          "path": "/data/organization/limit"
+        },
+        "kind": "rolling",
+        "reset": "/data/resetsOn",
+        "duration": 604800
+      }
+    ]
+  },
+  "clawrouter": {
+    "url": "https://clawrouter.openclaw.ai/v1/usage",
+    "required": [
+      "/budget",
+      "/usage/summary"
+    ],
+    "windows": [
+      {
+        "id": "monthly-budget",
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        },
+        "used": {
+          "path": "/budget/spentMicros",
+          "scale": 6
+        },
+        "limit": {
+          "path": "/budget/limitMicros",
+          "scale": 6
+        },
+        "remaining": {
+          "path": "/budget/remainingMicros",
+          "scale": 6
+        },
+        "kind": "calendar"
+      }
+    ],
+    "spend": [
+      {
+        "id": "monthly-actual",
+        "amount": {
+          "path": "/usage/summary/actualCostMicros",
+          "scale": 6
+        },
+        "currency": "USD"
+      }
+    ]
+  },
+  "cosmic": {
+    "url": "https://dapi.cosmicjs.com/v3/projects/usage?project_id={project_id}",
+    "headers": {
+      "Origin": "https://app.cosmicjs.com"
+    },
+    "required": [
+      "/usage/ai"
+    ],
+    "windows": [
+      {
+        "id": "input",
+        "unit": {
+          "kind": "tokens"
+        },
+        "used": {
+          "path": "/usage/ai/input_tokens"
+        },
+        "limit": {
+          "path": "/plan_info/ai_tokens/max_input"
+        }
+      },
+      {
+        "id": "output",
+        "unit": {
+          "kind": "tokens"
+        },
+        "used": {
+          "path": "/usage/ai/output_tokens"
+        },
+        "limit": {
+          "path": "/plan_info/ai_tokens/max_output"
+        }
+      }
+    ]
+  },
+  "xai": {
+    "url": "https://management-api.x.ai/v1/billing/teams/{team_id}/prepaid/balance",
+    "balances": [
+      {
+        "id": "prepaid",
+        "amount": {
+          "path": "/total/val",
+          "scale": 2,
+          "negate": true
+        },
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        }
+      }
+    ]
+  },
+  "langdock": {
+    "url": "https://app.langdock.com/api/trpc/usageSettings.getPersonalUsage?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%2C%22v%22%3A1%7D%7D%7D",
+    "auth": "cookie",
+    "headers": {
+      "Referer": "https://app.langdock.com/settings/account/usage"
+    },
+    "required": [
+      "/0/result/data/json/planUsage"
+    ],
+    "windows": [
+      {
+        "id": "session",
+        "unit": {
+          "kind": "percent"
+        },
+        "kind": "rolling",
+        "reset": "/0/result/data/json/planUsage/sessionResetsAt",
+        "duration": 18000,
+        "percent": "/0/result/data/json/planUsage/sessionUsagePercent"
+      },
+      {
+        "id": "weekly",
+        "unit": {
+          "kind": "percent"
+        },
+        "kind": "rolling",
+        "reset": "/0/result/data/json/planUsage/weeklyResetsAt",
+        "duration": 604800,
+        "percent": "/0/result/data/json/planUsage/weeklyUsagePercent"
+      }
+    ]
+  },
+  "codebuff": {
+    "url": "https://www.codebuff.com/api/v1/usage",
+    "method": "POST",
+    "body": {
+      "fingerprintId": "agentstat-usage"
+    },
+    "windows": [
+      {
+        "id": "credits",
+        "unit": {
+          "kind": "credits",
+          "name": "codebuff"
+        },
+        "used": {
+          "path": "/usage|/used"
+        },
+        "limit": {
+          "path": "/quota|/limit"
+        },
+        "remaining": {
+          "path": "/remainingBalance|/remaining"
+        },
+        "reset": "/next_quota_reset"
+      }
+    ],
+    "balances": [
+      {
+        "id": "available",
+        "amount": {
+          "path": "/remainingBalance|/remaining"
+        },
+        "unit": {
+          "kind": "credits",
+          "name": "codebuff"
+        }
+      }
+    ]
+  },
+  "flora": {
+    "url": "https://app.flora.ai/api/v1/workspaces/{workspace_id}/usage?start_date={month_date}&end_date={today}",
+    "required": [
+      "/available_cost"
+    ],
+    "currency_path": "/currency",
+    "balances": [
+      {
+        "id": "available",
+        "amount": {
+          "path": "/available_cost"
+        },
+        "unit": {
+          "kind": "currency",
+          "name": "USD"
+        }
+      }
+    ],
+    "spend": [
+      {
+        "id": "monthly",
+        "amount": {
+          "path": "/spend/total_cost"
+        },
+        "currency": "USD"
+      }
+    ]
+  },
+  "exa": {
+    "url": "https://admin-api.exa.ai/team-management/api-keys/{api_key_id}/usage?start_date={month_start}&end_date={now}",
+    "auth": "x-api-key",
+    "required": [
+      "/total_cost_usd"
+    ],
+    "spend": [
+      {
+        "id": "month-to-date",
+        "amount": {
+          "path": "/total_cost_usd"
+        },
+        "currency": "USD"
+      }
+    ]
+  },
+  "warp": {
+    "url": "https://app.warp.dev/graphql/v2?op=GetRequestLimitInfo",
+    "method": "POST",
+    "body": {
+      "query": "query GetRequestLimitInfo($requestContext: RequestContext!) { user(requestContext: $requestContext) { __typename ... on UserOutput { user { requestLimitInfo { isUnlimited nextRefreshTime requestLimit requestsUsedSinceLastRefresh } } } } }",
+      "variables": {
+        "requestContext": {
+          "clientContext": {},
+          "osContext": {
+            "category": "Linux",
+            "name": "Linux",
+            "version": "0.0.0"
+          }
+        }
+      },
+      "operationName": "GetRequestLimitInfo"
+    },
+    "headers": {
+      "User-Agent": "Warp/1.0",
+      "x-warp-client-id": "warp-app",
+      "x-warp-os-category": "Linux",
+      "x-warp-os-name": "Linux",
+      "x-warp-os-version": "0.0.0"
+    },
+    "required": [
+      "/data/user/user/requestLimitInfo"
+    ],
+    "windows": [
+      {
+        "id": "requests",
+        "unit": {
+          "kind": "requests"
+        },
+        "used": {
+          "path": "/data/user/user/requestLimitInfo/requestsUsedSinceLastRefresh"
+        },
+        "limit": {
+          "path": "/data/user/user/requestLimitInfo/requestLimit"
+        },
+        "reset": "/data/user/user/requestLimitInfo/nextRefreshTime"
+      }
+    ]
+  }
+}

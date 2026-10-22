@@ -1,0 +1,34 @@
+name: Rust
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --check
+      - run: cargo test --all-features
+      - run: cargo test --no-default-features
+      - run: cargo test
+      - run: cargo test --all-features --test http -- --ignored
+      - run: cargo clippy --all-features --all-targets -- -D warnings
+      - run: cargo doc --all-features --no-deps
+      - run: cargo package --allow-dirty --no-verify
+      - run: python3 scripts/check_coverage.py
+        if: runner.os != 'Windows'
+  individual-features:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fetch --locked
+      - run: bash scripts/check_features.sh

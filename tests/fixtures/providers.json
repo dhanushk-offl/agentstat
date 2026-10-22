@@ -1,0 +1,739 @@
+[
+  {
+    "provider": "codex",
+    "path": "/backend-api/wham/usage",
+    "body": {
+      "account_id": "account-a",
+      "plan_type": "new-plan",
+      "rate_limit": {
+        "primary_window": {
+          "used_percent": 25,
+          "limit_window_seconds": 18000,
+          "reset_at": 1800000000
+        },
+        "secondary_window": {
+          "used_percent": 60,
+          "limit_window_seconds": 604800,
+          "reset_at": 1800500000
+        }
+      },
+      "additional_rate_limits": [
+        {
+          "metered_feature": "spark",
+          "rate_limit": {
+            "primary_window": {
+              "used_percent": 12,
+              "limit_window_seconds": 18000,
+              "reset_at": 1800000000
+            }
+          }
+        }
+      ],
+      "credits": {
+        "balance": "12.3400"
+      }
+    },
+    "source": "oauth",
+    "windows": 3,
+    "percent": 25,
+    "balances": [
+      "12.34"
+    ]
+  },
+  {
+    "provider": "claude",
+    "path": "/api/oauth/usage",
+    "body": {
+      "five_hour": {
+        "utilization": 21.5,
+        "resets_at": "2026-10-23T04:00:00.123Z"
+      },
+      "seven_day": {
+        "utilization": 82,
+        "resets_at": "2026-10-29T00:00:00Z"
+      },
+      "seven_day_sonnet": {
+        "utilization": 33,
+        "resets_at": null
+      },
+      "extra_usage": {
+        "is_enabled": true,
+        "used_credits": 125,
+        "monthly_limit": 2000,
+        "currency": "USD"
+      }
+    },
+    "source": "oauth",
+    "windows": 4,
+    "percent": 21.5,
+    "spend": [
+      "1.25"
+    ]
+  },
+  {
+    "provider": "deepseek",
+    "path": "/user/balance",
+    "body": {
+      "is_available": true,
+      "balance_infos": [
+        {
+          "currency": "CNY",
+          "total_balance": "7.1234567890123456789",
+          "granted_balance": "1",
+          "topped_up_balance": "6.1234567890123456789"
+        }
+      ]
+    },
+    "windows": 0,
+    "balances": [
+      "7.1234567890123456789",
+      "1",
+      "6.1234567890123456789"
+    ]
+  },
+  {
+    "provider": "copilot",
+    "path": "/copilot_internal/user",
+    "body": {
+      "copilot_plan": "business",
+      "quota_reset_date": "2026-11-01",
+      "quota_snapshots": {
+        "premium_interactions": {
+          "entitlement": 300,
+          "remaining": 150,
+          "percent_remaining": 50,
+          "unlimited": false
+        },
+        "chat": {
+          "unlimited": true
+        }
+      }
+    },
+    "windows": 2,
+    "percent": 50
+  },
+  {
+    "provider": "clinepass",
+    "path": "/api/v1/users/me/plan/usage-limits",
+    "body": {
+      "success": true,
+      "data": {
+        "limits": [
+          {
+            "type": "five_hour",
+            "percentUsed": 17,
+            "resetsAt": "2026-10-23T00:00:00Z"
+          },
+          {
+            "type": "weekly",
+            "percentUsed": 105
+          }
+        ]
+      }
+    },
+    "windows": 2,
+    "percent": 17
+  },
+  {
+    "provider": "synthetic",
+    "path": "/v2/quotas",
+    "body": {
+      "quotas": [
+        {
+          "name": "weekly",
+          "used": 40,
+          "limit": 100,
+          "resetAt": "2026-10-29T00:00:00Z"
+        },
+        {
+          "name": "search_hourly",
+          "used": 3,
+          "limit": 10
+        }
+      ]
+    },
+    "windows": 2,
+    "percent": 40
+  },
+  {
+    "provider": "sailresearch",
+    "path": "/v2/usage/summary?range=30d",
+    "body": {
+      "object": "usage.summary",
+      "available": true,
+      "has_metronome_customer": true,
+      "balance_unavailable": false,
+      "effective_range": "30d",
+      "period_spend": 125,
+      "balance": 12345
+    },
+    "windows": 0,
+    "spend": [
+      "1.25"
+    ],
+    "balances": [
+      "123.45"
+    ]
+  },
+  {
+    "provider": "atlascloud",
+    "path": "/public/v1/balance",
+    "body": {
+      "object": "balance",
+      "scope": "account",
+      "available": {
+        "currency": "usd",
+        "value": "-1.25"
+      }
+    },
+    "windows": 0,
+    "balances": [
+      "-1.25"
+    ]
+  },
+  {
+    "provider": "linkup",
+    "path": "/v1/credits/balance",
+    "body": {
+      "balance": 12.25
+    },
+    "windows": 0,
+    "balances": [
+      "12.25"
+    ]
+  },
+  {
+    "provider": "vercel",
+    "path": "/v1/credits",
+    "body": {
+      "balance": "8.25",
+      "total_used": "1.75"
+    },
+    "windows": 0,
+    "balances": [
+      "8.25"
+    ],
+    "spend": [
+      "1.75"
+    ]
+  },
+  {
+    "provider": "moonshot",
+    "path": "/v1/users/me/balance",
+    "body": {
+      "code": 0,
+      "scode": "0",
+      "status": true,
+      "data": {
+        "available_balance": 10.25,
+        "cash_balance": 8.25,
+        "voucher_balance": 2
+      }
+    },
+    "windows": 0,
+    "balances": [
+      "10.25",
+      "8.25",
+      "2"
+    ]
+  },
+  {
+    "provider": "sofya",
+    "path": "/v1/auth/me",
+    "body": {
+      "credits": 10,
+      "plan_credits": 7,
+      "purchased_credits": 3,
+      "is_free_tier": false
+    },
+    "windows": 0,
+    "balances": [
+      "10",
+      "7",
+      "3"
+    ]
+  },
+  {
+    "provider": "aerostack",
+    "path": "/api/billing/usage",
+    "body": {
+      "usage": {
+        "ai_tokens": {
+          "used": 200,
+          "limit": 1000
+        }
+      },
+      "tier": "pro",
+      "period": "2026-10"
+    },
+    "windows": 1,
+    "percent": 20
+  },
+  {
+    "provider": "tavily",
+    "path": "/usage",
+    "body": {
+      "account": {
+        "plan_usage": 100,
+        "plan_limit": 1000,
+        "current_plan": "pro"
+      },
+      "key": {
+        "usage": 10,
+        "limit": null
+      }
+    },
+    "windows": 2,
+    "percent": 10
+  },
+  {
+    "provider": "poe",
+    "path": "/usage/current_balance",
+    "body": {
+      "current_point_balance": 13579
+    },
+    "windows": 0,
+    "balances": [
+      "13579"
+    ]
+  },
+  {
+    "provider": "ollama",
+    "path": "/api/balance",
+    "body": {
+      "purchased": {
+        "balance_usd": "15.50"
+      },
+      "included": {
+        "allowance_usd": "20",
+        "balance_usd": "10",
+        "period": {
+          "until": "2026-11-01T00:00:00Z"
+        }
+      }
+    },
+    "windows": 1,
+    "percent": 50,
+    "balances": [
+      "15.5"
+    ]
+  },
+  {
+    "provider": "elevenlabs",
+    "path": "/v1/user/subscription",
+    "body": {
+      "tier": "creator",
+      "character_count": 250,
+      "character_limit": 1000,
+      "next_character_count_reset_unix": 1800000000,
+      "voice_slots_used": 2,
+      "voice_limit": 10
+    },
+    "windows": 2,
+    "percent": 25
+  },
+  {
+    "provider": "devpass",
+    "path": "/v1/key",
+    "body": {
+      "data": {
+        "devPlan": "pro",
+        "usage": "12.50",
+        "limit": null,
+        "devPlanCreditsUsed": "5",
+        "devPlanCreditsLimit": "20",
+        "devPlanCreditsRemaining": "15",
+        "devPlanPremiumCreditsUsed": "3",
+        "devPlanPremiumWeeklyLimit": "10",
+        "devPlanPremiumWeekResetsAt": "2026-10-29T00:00:00Z"
+      }
+    },
+    "windows": 3
+  },
+  {
+    "provider": "zenmux",
+    "path": "/api/v1/management/subscription/detail",
+    "body": {
+      "success": true,
+      "data": {
+        "plan": {
+          "tier": "pro"
+        },
+        "quota_5_hour": {
+          "used_flows": 10,
+          "max_flows": 100,
+          "remaining_flows": 90,
+          "usage_percentage": 0.1
+        },
+        "quota_7_day": {
+          "used_flows": 50,
+          "max_flows": 100,
+          "remaining_flows": 50,
+          "usage_percentage": 0.5
+        }
+      }
+    },
+    "windows": 2,
+    "percent": 10
+  },
+  {
+    "provider": "xkiro",
+    "path": "/v1/usage",
+    "body": {
+      "object": "usage",
+      "free_tokens": {
+        "used_today": 20,
+        "limit_per_day": 100,
+        "remaining": 80
+      }
+    },
+    "windows": 1,
+    "percent": 20
+  },
+  {
+    "provider": "openrouter",
+    "path": "/api/v1/key",
+    "body": {
+      "data": {
+        "usage": 5,
+        "limit": 20,
+        "limit_remaining": 15,
+        "usage_daily": 1,
+        "usage_weekly": 3,
+        "usage_monthly": 5
+      }
+    },
+    "windows": 1,
+    "percent": 25,
+    "spend": [
+      "5",
+      "1",
+      "3",
+      "5"
+    ]
+  },
+  {
+    "provider": "fal",
+    "path": "/v1/account/billing?expand=credits",
+    "body": {
+      "credits": {
+        "current_balance": "1.2300",
+        "currency": "EUR"
+      }
+    },
+    "windows": 0,
+    "balances": [
+      "1.23"
+    ]
+  },
+  {
+    "provider": "venice",
+    "path": "/api/v1/billing/balance",
+    "body": {
+      "canConsume": true,
+      "balances": {
+        "usd": "12.50",
+        "diem": "7.50"
+      },
+      "diemEpochAllocation": 10
+    },
+    "windows": 0,
+    "balances": [
+      "12.5",
+      "7.5"
+    ]
+  },
+  {
+    "provider": "nous",
+    "path": "/api/oauth/account",
+    "body": {
+      "subscription": {
+        "plan": "pro",
+        "monthly_credits": 20,
+        "credits_remaining": 15,
+        "current_period_end": "2026-11-01T00:00:00Z"
+      },
+      "purchased_credits_remaining": 10,
+      "paid_service_access": {
+        "total_usable_credits": 25
+      }
+    },
+    "windows": 1,
+    "percent": 25,
+    "balances": [
+      "10",
+      "25",
+      "15"
+    ]
+  },
+  {
+    "provider": "gitkraken",
+    "path": "/v1/ai-tasks/usage",
+    "body": {
+      "data": {
+        "used": 25,
+        "limit": 100,
+        "resetsOn": "2026-10-29T00:00:00Z",
+        "organization": {
+          "used": 300,
+          "limit": -1
+        }
+      }
+    },
+    "windows": 2,
+    "percent": 25
+  },
+  {
+    "provider": "clawrouter",
+    "path": "/v1/usage",
+    "body": {
+      "budget": {
+        "spentMicros": 2500000,
+        "limitMicros": 10000000,
+        "remainingMicros": 7500000
+      },
+      "usage": {
+        "summary": {
+          "actualCostMicros": 1234567
+        }
+      }
+    },
+    "windows": 1,
+    "percent": 25,
+    "spend": [
+      "1.234567"
+    ]
+  },
+  {
+    "provider": "cosmic",
+    "path": "/v3/projects/usage?project_id=project-a",
+    "body": {
+      "usage": {
+        "ai": {
+          "input_tokens": 20,
+          "output_tokens": 40
+        }
+      },
+      "plan_info": {
+        "ai_tokens": {
+          "max_input": 100,
+          "max_output": 200
+        }
+      }
+    },
+    "config": {
+      "cosmic": "project-a"
+    },
+    "windows": 2,
+    "percent": 20
+  },
+  {
+    "provider": "xai",
+    "path": "/v1/billing/teams/team-a/prepaid/balance",
+    "body": {
+      "total": {
+        "val": "-12345"
+      }
+    },
+    "config": {
+      "xai": "team-a"
+    },
+    "windows": 0,
+    "balances": [
+      "123.45"
+    ]
+  },
+  {
+    "provider": "langdock",
+    "path": "/api/trpc/usageSettings.getPersonalUsage?",
+    "body": [
+      {
+        "result": {
+          "data": {
+            "json": {
+              "planUsage": {
+                "sessionUsageLimitsEnabled": true,
+                "sessionUsagePercent": 25,
+                "weeklyUsagePercent": 80
+              }
+            }
+          }
+        }
+      }
+    ],
+    "credential": "cookie",
+    "windows": 2,
+    "percent": 25
+  },
+  {
+    "provider": "codebuff",
+    "path": "/api/v1/usage",
+    "body": {
+      "usage": 25,
+      "quota": 100,
+      "remainingBalance": 75
+    },
+    "method": "POST",
+    "windows": 1,
+    "percent": 25,
+    "balances": [
+      "75"
+    ]
+  },
+  {
+    "provider": "flora",
+    "path": "/api/v1/workspaces/ws_a/usage?",
+    "body": {
+      "available_cost": 12.5,
+      "currency": "USD",
+      "spend": {
+        "status": "available",
+        "total_cost": 2.5
+      }
+    },
+    "config": {
+      "flora": "ws_a"
+    },
+    "windows": 0,
+    "balances": [
+      "12.5"
+    ],
+    "spend": [
+      "2.5"
+    ]
+  },
+  {
+    "provider": "exa",
+    "path": "/team-management/api-keys/key-a/usage?",
+    "body": {
+      "total_cost_usd": 12.345
+    },
+    "config": {
+      "exa": "key-a"
+    },
+    "windows": 0,
+    "spend": [
+      "12.345"
+    ]
+  },
+  {
+    "provider": "warp",
+    "path": "/graphql/v2?op=GetRequestLimitInfo",
+    "body": {
+      "data": {
+        "user": {
+          "__typename": "UserOutput",
+          "user": {
+            "requestLimitInfo": {
+              "isUnlimited": false,
+              "nextRefreshTime": "2026-11-01T00:00:00Z",
+              "requestLimit": 100,
+              "requestsUsedSinceLastRefresh": 25
+            }
+          }
+        }
+      }
+    },
+    "method": "POST",
+    "windows": 1,
+    "percent": 25
+  },
+  {
+    "provider": "gemini",
+    "path": "/v1internal:retrieveUserQuota",
+    "body": {
+      "buckets": [
+        {
+          "modelId": "gemini-pro",
+          "remainingFraction": 0.75,
+          "resetTime": "2026-10-23T00:00:00Z"
+        },
+        {
+          "modelId": "gemini-flash",
+          "remainingFraction": 0.5
+        }
+      ]
+    },
+    "method": "POST",
+    "source": "oauth",
+    "windows": 2,
+    "percent": 25
+  },
+  {
+    "provider": "zai",
+    "path": "/api/monitor/usage/quota/limit",
+    "body": {
+      "success": true,
+      "data": {
+        "limits": [
+          {
+            "type": "TOKENS_LIMIT",
+            "unit": 3,
+            "number": 5,
+            "percentage": 25,
+            "usage": 100,
+            "currentValue": 25,
+            "remaining": 75,
+            "nextResetTime": 1800000000000
+          }
+        ]
+      }
+    },
+    "windows": 1,
+    "percent": 25
+  },
+  {
+    "provider": "munito",
+    "path": "/admin/v1/limits",
+    "body": {
+      "periods": [
+        {
+          "period": "day",
+          "spent_usd": "2.50",
+          "limit_usd": "10"
+        },
+        {
+          "period": "month",
+          "spent_usd": "5",
+          "limit_usd": null
+        }
+      ]
+    },
+    "windows": 2,
+    "percent": 25,
+    "spend": [
+      "2.5",
+      "5"
+    ]
+  },
+  {
+    "provider": "openai",
+    "path": "/v1/organization/costs?",
+    "body": {
+      "data": [
+        {
+          "results": [
+            {
+              "amount": {
+                "value": "0.10",
+                "currency": "usd"
+              }
+            },
+            {
+              "amount": {
+                "value": "0.20",
+                "currency": "usd"
+              }
+            }
+          ]
+        }
+      ],
+      "has_more": false
+    },
+    "credential": "api_key",
+    "windows": 0,
+    "spend": [
+      "0.3"
+    ]
+  }
+]
