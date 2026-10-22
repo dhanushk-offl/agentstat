@@ -3,16 +3,11 @@
 A Rust library for fetching current AI account usage, quota limits, reset times,
 credit balances, and provider-reported spend. No tray, UI, daemon, or polling loop.
 
-**Status: initial 0.1 implementation.** There are 37 remote provider adapters and
-one opt-in local usage adapter. All 106 CodexBar provider IDs are catalogued;
-64 adapter ports remain planned and four sources are excluded by the read-only
-policy. This is not full CodexBar provider parity. See [provider coverage](docs/providers.md)
-for the exact data surfaces and [the machine-readable manifest](docs/coverage.json).
-
-Fetching and parsing behavior is adapted from MIT-licensed
-[CodexBar](https://github.com/steipete/CodexBar), pinned to
-`aa232d7f9ffce83dcb559bf7a56abc93c477b40c`. Attribution is in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+**Status: initial 0.1 implementation.** There are 38 remote provider adapters and
+one opt-in local usage adapter. The catalog tracks 106 provider IDs;
+63 integrations remain planned and four are excluded by the read-only policy.
+See [provider coverage](docs/providers.md) for the exact data surfaces and
+[the machine-readable manifest](docs/coverage.json) for integration status.
 
 ## Use from another Rust project
 
@@ -89,6 +84,9 @@ not read; pass a token explicitly if the CLI stores it there.
 
 Codex workspace routing uses `AccountScope.account_id`. Claude web usage needs
 `ProviderConfig::Claude { organization_id }` plus `Credentials::cookie`.
+OpenCode uses `AccountScope.workspace_id` (`wrk_…` or `org_…`) and a caller-supplied
+`__Host-console_session` Cookie header. Without an explicit workspace, discovery
+requires exactly one available workspace.
 Other scoped APIs use typed configuration, such as `ProviderConfig::Cosmic` or
 `ProviderConfig::Exa`. Unsupported account routing is rejected rather than ignored.
 A fetch never falls back to another account, credential, or source.
@@ -100,6 +98,39 @@ shell or login operation. This source currently supports Unix; Windows returns
 `UnsupportedPlatform`. Output is bounded to 128 KiB and the dedicated process
 group is killed on timeout/cancellation. The third-party executable owns its
 internal behavior; agentstat does not invoke its credential-repair commands.
+
+## OpenCode usage
+
+Enable the `opencode` Cargo feature, then supply an existing Console session cookie:
+
+```toml
+agentstat = { path = "../agentstat", features = ["opencode"] }
+```
+
+```rust
+use agentstat::{AccountScope, Client, Credentials, FetchRequest, ProviderId};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let cookie = std::env::var("OPENCODE_COOKIE")?;
+    let request = FetchRequest::new(ProviderId::OpenCode, Credentials::cookie(cookie))
+        .scope(AccountScope {
+            workspace_id: Some("wrk_your_workspace".into()),
+            ..Default::default()
+        });
+    let snapshot = Client::builder().build()?.fetch(request).await?;
+    println!("{} quota windows", snapshot.windows.len());
+    Ok(())
+}
+```
+
+Subscription accounts return five-hour, weekly, and monthly meters when reported.
+Amounts in those meters represent USD-equivalent quota consumption, not billed
+spend. Confirmed pay-as-you-go accounts return provider-reported spend over the
+last 30 days and an available prepaid balance when reported. A missing quota is
+never treated as zero or silently replaced with spend for a subscribed account.
+This adapter uses the Console JSON API; legacy workspace-page sessions are not
+supported. The separate `opencodego` provider entry remains planned.
 
 ## Data semantics
 

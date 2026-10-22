@@ -6,7 +6,8 @@ use serde_json::Value;
     feature = "codex",
     feature = "claude",
     feature = "synthetic",
-    feature = "openai"
+    feature = "openai",
+    feature = "opencode"
 ))]
 use serde_json::json;
 use std::collections::{HashMap, VecDeque};
@@ -157,12 +158,22 @@ async fn all_implemented_remote_providers_have_request_and_normalization_fixture
             .build()
             .unwrap();
         let credentials = match case["credential"].as_str() {
-            Some("cookie") => Credentials::cookie("sessionKey=test-secret"),
+            Some("cookie") => {
+                Credentials::cookie(case["cookie"].as_str().unwrap_or("sessionKey=test-secret"))
+            }
             Some("api_key") => Credentials::api_key("test-secret"),
             _ => Credentials::bearer("test-secret"),
         };
         let snapshot = client
-            .fetch(FetchRequest::new(provider, credentials).config(config(&case["config"])))
+            .fetch(
+                FetchRequest::new(provider, credentials)
+                    .config(config(&case["config"]))
+                    .scope(if case["scope"].is_null() {
+                        AccountScope::default()
+                    } else {
+                        serde_json::from_value(case["scope"].clone()).unwrap()
+                    }),
+            )
             .await
             .unwrap_or_else(|e| panic!("{provider}: {e:?}"));
         assert_eq!(
@@ -216,6 +227,7 @@ async fn all_implemented_remote_providers_have_request_and_normalization_fixture
         let lower = request.to_lowercase();
         let expected_auth = match provider {
             ProviderId::Copilot => "authorization: token test-secret",
+            ProviderId::OpenCode => "cookie: __host-console_session=test-secret",
             ProviderId::ElevenLabs => "xi-api-key: test-secret",
             ProviderId::Exa => "x-api-key: test-secret",
             ProviderId::Fal => "authorization: key test-secret",
@@ -387,9 +399,8 @@ async fn malformed_responses_and_body_size_limit() {
     }
 }
 #[test]
-fn catalog_covers_all_pinned_providers_and_manifest_matches() {
+fn catalog_covers_all_providers_and_manifest_matches() {
     let manifest: Value = serde_json::from_str(include_str!("../docs/coverage.json")).unwrap();
-    assert_eq!(manifest["upstream_revision"], UPSTREAM_REVISION);
     assert_eq!(ProviderId::ALL.len(), 106);
     assert_eq!(manifest["providers"].as_array().unwrap().len(), 106);
     for descriptor in provider_catalog() {
@@ -399,6 +410,8 @@ fn catalog_covers_all_pinned_providers_and_manifest_matches() {
             .iter()
             .find(|v| v["id"] == descriptor.id.as_str())
             .unwrap();
+        assert_eq!(m["name"], descriptor.name);
+        assert_eq!(m["reason"], descriptor.reason);
         assert_eq!(
             serde_json::to_value(descriptor.status).unwrap(),
             m["status"]
@@ -648,4 +661,335 @@ async fn admin_pagination_does_not_merge_currencies_or_replay_cursors() {
             .any(|s| s.currency == "EUR" && s.amount.as_str() == "1.25")
     );
     assert!(server.await.unwrap()[1].contains("page=page-two"));
+}
+
+#[cfg(feature = "opencode")]
+mod opencode {
+    use super::*;
+
+    fn request(workspace: Option<&str>) -> FetchRequest {
+        FetchRequest::new(
+            ProviderId::OpenCode,
+            Credentials::cookie("__Host-console_session=test-secret"),
+        )
+        .source(Source::Web)
+        .scope(AccountScope {
+            workspace_id: workspace.map(str::to_owned),
+            ..Default::default()
+        })
+    }
+    fn quota() -> Value {
+        json!({"access":{"endsAt":"2026-11-01T00:00:00Z","meters":{
+            "fiveHour":{"usedMicroCents":"300000000","limitMicroCents":"1200000000","resetsAt":"2026-10-23T03:00:00Z"},
+            "week":{"usedMicroCents":"1200000000","limitMicroCents":"3000000000"},
+            "month":{"usedMicroCents":"600000000","limitMicroCents":"6000000000"}
+        }}})
+    }
+    fn payg_replies(balance: Value, total: Value) -> Vec<Reply> {
+        vec![
+            Reply::json(Value::Null),
+            Reply::json(json!({"id":"wrk_A","hasGoSubscription":false})),
+            Reply::json(
+                json!({"mode":"pay-as-you-go","billingMode":"prepaid","balanceMicroCents":balance}),
+            ),
+            Reply::json(json!({"totalCostMicroCents":total})),
+        ]
+    }
+
+    #[tokio::test]
+    async fn discovers_unique_workspace_and_scopes_all_usage_requests() {
+        let (base, server) = server(vec![
+            Reply::json(json!([{"id":"wrk_A"}])),
+            Reply::json(quota()),
+        ])
+        .await;
+        let snapshot = builder(&base, ProviderId::OpenCode)
+            .build()
+            .unwrap()
+            .fetch(request(None))
+            .await
+            .unwrap();
+        assert_eq!(snapshot.scope.workspace_id.as_deref(), Some("wrk_A"));
+        assert_eq!(snapshot.source, Source::Web);
+        assert_eq!(
+            snapshot
+                .windows
+                .iter()
+                .map(|w| w.utilization_percent)
+                .collect::<Vec<_>>(),
+            vec![Some(25.0), Some(40.0), Some(10.0)]
+        );
+        assert_eq!(snapshot.windows[0].used.as_ref().unwrap().as_str(), "3");
+        assert_eq!(
+            snapshot.windows[0].limit,
+            QuotaLimit::Known("12".parse().unwrap())
+        );
+        assert_eq!(
+            snapshot.windows[0].remaining.as_ref().unwrap().as_str(),
+            "9"
+        );
+        assert_eq!(snapshot.windows[0].duration_seconds, Some(18000));
+        assert_eq!(snapshot.windows[1].duration_seconds, Some(604800));
+        assert_eq!(snapshot.windows[1].resets_at, None);
+        assert_eq!(snapshot.windows[2].kind, WindowKind::Calendar);
+        assert_eq!(
+            snapshot.windows[2].resets_at.unwrap().to_rfc3339(),
+            "2026-11-01T00:00:00+00:00"
+        );
+        let requests = server.await.unwrap();
+        assert!(requests[0].starts_with("GET /console/api/orgs "));
+        assert!(!requests[0].contains("x-org-id:"));
+        assert!(requests[1].contains("x-org-id: wrk_A"));
+        for request in requests {
+            assert!(request.contains("cookie: __Host-console_session=test-secret"));
+            assert!(!request.contains("authorization:"));
+        }
+    }
+
+    #[tokio::test]
+    async fn discovery_never_selects_arbitrary_workspace() {
+        for body in [
+            json!([]),
+            json!([{"id":"not-a-workspace"}]),
+            json!([{"id":"wrk_A"},{"id":"org_B"}]),
+            json!({"error":"unexpected"}),
+        ] {
+            let (base, server) = server(vec![Reply::json(body)]).await;
+            let result = builder(&base, ProviderId::OpenCode)
+                .build()
+                .unwrap()
+                .fetch(request(None))
+                .await;
+            assert!(matches!(
+                result,
+                Err(AgentStatError::Configuration(_) | AgentStatError::InvalidResponse(_))
+            ));
+            assert_eq!(server.await.unwrap().len(), 1);
+        }
+    }
+
+    #[tokio::test]
+    async fn explicit_workspace_skips_discovery_and_invalid_selection_fails_locally() {
+        let (base, server) = server(vec![Reply::json(quota())]).await;
+        builder(&base, ProviderId::OpenCode)
+            .build()
+            .unwrap()
+            .fetch(request(Some("org_SELECTED")))
+            .await
+            .unwrap();
+        let requests = server.await.unwrap();
+        assert_eq!(requests.len(), 1);
+        assert!(requests[0].starts_with("GET /console/api/go/status "));
+        assert!(requests[0].contains("x-org-id: org_SELECTED"));
+        let client = Client::builder().build().unwrap();
+        for id in [
+            "",
+            "wrk_",
+            "../wrk_A",
+            "https://opencode.ai/console/wrk_A",
+            "wrk_A\n",
+        ] {
+            assert!(matches!(
+                client.fetch(request(Some(id))).await,
+                Err(AgentStatError::Configuration(_))
+            ));
+        }
+        assert!(matches!(
+            client
+                .fetch(FetchRequest::new(
+                    ProviderId::OpenCode,
+                    Credentials::api_key("private")
+                ))
+                .await,
+            Err(AgentStatError::InvalidCredentials(_))
+        ));
+        assert!(matches!(
+            client
+                .fetch(request(Some("wrk_A")).source(Source::Api))
+                .await,
+            Err(AgentStatError::UnsupportedSource(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn missing_optional_meters_stay_missing_and_overages_survive() {
+        let body = json!({"access":{"meters":{"fiveHour":{"usedMicroCents":"1500000000","limitMicroCents":"1200000000"},"week":{"usedMicroCents":"invalid","limitMicroCents":"100"}}}});
+        let (base, server) = server(vec![Reply::json(body)]).await;
+        let snapshot = builder(&base, ProviderId::OpenCode)
+            .build()
+            .unwrap()
+            .fetch(request(Some("wrk_A")))
+            .await
+            .unwrap();
+        assert_eq!(snapshot.windows.len(), 1);
+        assert_eq!(snapshot.windows[0].utilization_percent, Some(125.0));
+        assert_eq!(
+            snapshot.windows[0].remaining.as_ref().unwrap().as_str(),
+            "-3"
+        );
+        assert_eq!(snapshot.windows[0].resets_at, None);
+        assert_eq!(snapshot.warnings, vec![Warning::MalformedOptionalData]);
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn zero_limits_do_not_become_unlimited() {
+        let (base, server) = server(vec![Reply::json(
+            json!({"access":{"meters":{"fiveHour":{"usedMicroCents":0,"limitMicroCents":"0"}}}}),
+        )])
+        .await;
+        let snapshot = builder(&base, ProviderId::OpenCode)
+            .build()
+            .unwrap()
+            .fetch(request(Some("wrk_A")))
+            .await
+            .unwrap();
+        assert_eq!(
+            snapshot.windows[0].limit,
+            QuotaLimit::Known(Decimal::from(0))
+        );
+        assert_eq!(snapshot.windows[0].utilization_percent, None);
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn confirmed_payg_preserves_exact_spend_balance_and_workspace() {
+        let (base, server) = server(payg_replies(json!("1250000000"), json!("325000000"))).await;
+        let snapshot = builder(&base, ProviderId::OpenCode)
+            .build()
+            .unwrap()
+            .fetch(request(Some("wrk_A")))
+            .await
+            .unwrap();
+        assert!(snapshot.windows.is_empty());
+        assert_eq!(snapshot.spend[0].id, "last-30-days");
+        assert_eq!(snapshot.spend[0].amount.as_str(), "3.25");
+        assert_eq!(snapshot.balances[0].amount.as_str(), "12.5");
+        let requests = server.await.unwrap();
+        assert_eq!(requests.len(), 4);
+        assert!(requests[3].starts_with("GET /console/api/usage/summary?range=30d "));
+        for request in requests {
+            assert!(request.starts_with("GET "));
+            assert!(request.contains("x-org-id: wrk_A"));
+        }
+    }
+
+    #[tokio::test]
+    async fn optional_balance_failure_preserves_spend_and_negative_balance_is_valid() {
+        for balance in [Value::Null, json!("invalid"), json!("-1250000000")] {
+            let (base, server) = server(payg_replies(
+                balance.clone(),
+                json!("900719925474099312345678"),
+            ))
+            .await;
+            let snapshot = builder(&base, ProviderId::OpenCode)
+                .build()
+                .unwrap()
+                .fetch(request(Some("wrk_A")))
+                .await
+                .unwrap();
+            assert_eq!(
+                snapshot.spend[0].amount.as_str(),
+                "9007199254740993.12345678"
+            );
+            if balance == "-1250000000" {
+                assert_eq!(snapshot.balances[0].amount.as_str(), "-12.5")
+            } else {
+                assert!(snapshot.balances.is_empty());
+                assert!(!snapshot.warnings.is_empty());
+            }
+            server.await.unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn broken_subscription_never_falls_back_to_spend() {
+        for body in [
+            json!({}),
+            json!({"access":{"meters":{}}}),
+            json!({"access":false}),
+            json!({"access":{"meters":{"fiveHour":{"usedMicroCents":true,"limitMicroCents":100}}}}),
+        ] {
+            let (base, server) = server(vec![Reply::json(body)]).await;
+            assert!(matches!(
+                builder(&base, ProviderId::OpenCode)
+                    .build()
+                    .unwrap()
+                    .fetch(request(Some("wrk_A")))
+                    .await,
+                Err(AgentStatError::InvalidResponse(_))
+            ));
+            assert_eq!(server.await.unwrap().len(), 1);
+        }
+        for organization in [
+            json!({"hasGoSubscription":true}),
+            json!({"hasGoSubscription":false,"id":"wrk_B"}),
+            json!({}),
+        ] {
+            let (base, server) = server(vec![
+                Reply::json(json!({"access":null})),
+                Reply::json(organization),
+            ])
+            .await;
+            assert!(matches!(
+                builder(&base, ProviderId::OpenCode)
+                    .build()
+                    .unwrap()
+                    .fetch(request(Some("wrk_A")))
+                    .await,
+                Err(AgentStatError::InvalidResponse(_))
+            ));
+            server.await.unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn invalid_microcent_totals_fail_instead_of_becoming_zero() {
+        for total in [
+            json!(true),
+            json!(-1),
+            json!(1.5),
+            json!("NaN"),
+            Value::Null,
+            json!("-1"),
+            json!("1.5"),
+        ] {
+            let (base, server) = server(payg_replies(json!("0"), total)).await;
+            assert!(matches!(
+                builder(&base, ProviderId::OpenCode)
+                    .build()
+                    .unwrap()
+                    .fetch(request(Some("wrk_A")))
+                    .await,
+                Err(AgentStatError::InvalidResponse(_))
+            ));
+            server.await.unwrap();
+        }
+    }
+
+    #[tokio::test]
+    async fn provider_errors_stop_without_retry_or_legacy_fallback() {
+        for status in [401, 403, 429, 500] {
+            let (base, server) = server(vec![Reply {
+                status,
+                body: "private-token".into(),
+                headers: vec![],
+            }])
+            .await;
+            let error = builder(&base, ProviderId::OpenCode)
+                .build()
+                .unwrap()
+                .fetch(request(Some("wrk_A")))
+                .await
+                .unwrap_err();
+            match status {
+                401 => assert!(matches!(error, AgentStatError::Authentication)),
+                403 => assert!(matches!(error, AgentStatError::PermissionDenied)),
+                429 => assert!(matches!(error, AgentStatError::RateLimited { .. })),
+                _ => assert!(matches!(error, AgentStatError::Http { status: 500 })),
+            }
+            assert!(!format!("{error:?}").contains("private-token"));
+            assert_eq!(server.await.unwrap().len(), 1);
+        }
+    }
 }

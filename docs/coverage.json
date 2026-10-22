@@ -1,15 +1,10 @@
 {
-  "upstream_repository": "https://github.com/steipete/CodexBar",
-  "upstream_revision": "aa232d7f9ffce83dcb559bf7a56abc93c477b40c",
   "providers": [
     {
       "id": "codex",
       "name": "Codex",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift"
-      ],
       "data": "OAuth session/weekly/additional windows, credits, monthly credit limits; optional reset-credit count. Native auth.json read is opt-in. No CLI/PAT/web-dashboard fallback.",
       "source_platforms": [
         "linux",
@@ -22,10 +17,6 @@
       "name": "OpenAI",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/OpenAI/OpenAIAPIProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/openai.js"
-      ],
       "data": "Admin API organization cost report for the last 30 days, with bounded pagination. No legacy credit-grant fallback or usage charts.",
       "source_platforms": [
         "linux",
@@ -37,10 +28,7 @@
       "id": "azureopenai",
       "name": "Azure OpenAI",
       "status": "unsupported",
-      "reason": "Upstream validates access with inference traffic; no compatible quota endpoint has been identified.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/AzureOpenAI/AzureOpenAIProviderDescriptor.swift"
-      ],
+      "reason": "Only an inference-based access probe has been identified; no compatible read-only quota endpoint is available.",
       "source_platforms": []
     },
     {
@@ -48,9 +36,6 @@
       "name": "Claude",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Claude/ClaudeProviderDescriptor.swift"
-      ],
       "data": "OAuth or explicit-organization manual cookie quotas, scoped weekly windows, extra usage; Admin API organization cost report. No PTY, keychain, browser extraction, or cloud grant inventory.",
       "source_platforms": [
         "linux",
@@ -63,10 +48,6 @@
       "name": "ClinePass",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/ClinePass/ClinePassProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/clinepass.js"
-      ],
       "data": "API five-hour, weekly, and monthly percentage quotas.",
       "source_platforms": [
         "linux",
@@ -79,29 +60,28 @@
       "name": "Cursor",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Cursor/CursorProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
       "id": "opencode",
       "name": "OpenCode",
-      "status": "planned",
-      "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/OpenCode/OpenCodeProviderDescriptor.swift"
+      "status": "implemented",
+      "reason": "",
+      "source_platforms": [
+        "linux",
+        "macos",
+        "windows"
       ],
-      "source_platforms": []
+      "endpoint": "https://opencode.ai/console/api/go/status",
+      "method": "GET",
+      "credential": "cookie",
+      "data": "Console session cookie: five-hour, weekly, optional monthly USD-equivalent quota meters and resets. Confirmed PAYG accounts: reported 30-day spend and optional prepaid balance. Explicit workspace selection; discovery requires exactly one workspace. No browser extraction or legacy server-function fallback."
     },
     {
       "id": "opencodego",
       "name": "OpenCode Go",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/OpenCodeGo/OpenCodeGoProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -109,9 +89,6 @@
       "name": "Alibaba Coding Plan",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Alibaba/AlibabaCodingPlanProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -119,9 +96,6 @@
       "name": "Alibaba Token Plan",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Alibaba/AlibabaTokenPlanProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -129,10 +103,6 @@
       "name": "Qwen Cloud",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/QwenCloud/QwenCloudProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/qwencloud-team.js"
-      ],
       "source_platforms": []
     },
     {
@@ -140,9 +110,6 @@
       "name": "Droid",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Factory/FactoryProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -150,10 +117,6 @@
       "name": "Fireworks",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Fireworks/FireworksProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/fireworks.js"
-      ],
       "source_platforms": []
     },
     {
@@ -161,10 +124,6 @@
       "name": "Gemini app",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Gemini/GeminiProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/gemini-web.js"
-      ],
       "data": "Existing bearer token \u2192 retrieveUserQuota model buckets; optional explicit project ID. No token refresh or project discovery.",
       "source_platforms": [
         "linux",
@@ -177,9 +136,6 @@
       "name": "Antigravity",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Antigravity/AntigravityProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -187,9 +143,6 @@
       "name": "Copilot",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Copilot/CopilotProviderDescriptor.swift"
-      ],
       "data": "Existing GitHub OAuth token \u2192 monthly quota snapshots; preserves explicit unlimited allowances. No device login or enterprise host discovery.",
       "source_platforms": [
         "linux",
@@ -202,9 +155,6 @@
       "name": "Devin",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Devin/DevinProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -212,10 +162,6 @@
       "name": "z.ai / GLM",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Zai/ZaiProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/zai.js"
-      ],
       "data": "Personal quota API: token/time/credit windows. No team routing or model-usage enrichment.",
       "source_platforms": [
         "linux",
@@ -228,9 +174,6 @@
       "name": "MiniMax",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/MiniMax/MiniMaxProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -238,10 +181,6 @@
       "name": "Manus",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Manus/ManusProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/manus.js"
-      ],
       "source_platforms": []
     },
     {
@@ -249,9 +188,6 @@
       "name": "Kimi",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Kimi/KimiProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -259,9 +195,6 @@
       "name": "Kilo",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Kilo/KiloProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -269,9 +202,6 @@
       "name": "Kiro",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Kiro/KiroProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -279,9 +209,6 @@
       "name": "Vertex AI",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/VertexAI/VertexAIProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -289,9 +216,6 @@
       "name": "Augment",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Augment/AugmentProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -299,9 +223,6 @@
       "name": "JetBrains AI",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/JetBrains/JetBrainsProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -309,10 +230,6 @@
       "name": "Moonshot / Kimi Open Platform",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Moonshot/MoonshotProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/moonshot.js"
-      ],
       "endpoint": "https://api.moonshot.ai/v1/users/me/balance",
       "method": "GET",
       "credential": "bearer",
@@ -328,9 +245,6 @@
       "name": "Amp",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Amp/AmpProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -338,10 +252,6 @@
       "name": "T3 Chat",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/T3Chat/T3ChatProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/t3chat.js"
-      ],
       "source_platforms": []
     },
     {
@@ -349,10 +259,6 @@
       "name": "Langdock",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Langdock/LangdockProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/langdock.js"
-      ],
       "endpoint": "https://app.langdock.com/api/trpc/usageSettings.getPersonalUsage?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%2C%22v%22%3A1%7D%7D%7D",
       "method": "GET",
       "credential": "cookie",
@@ -368,10 +274,6 @@
       "name": "Ollama",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Ollama/OllamaProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/ollama-api.js"
-      ],
       "endpoint": "https://ollama.com/api/balance",
       "method": "GET",
       "credential": "bearer",
@@ -387,10 +289,6 @@
       "name": "Synthetic",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Synthetic/SyntheticProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/synthetic.js"
-      ],
       "data": "API quota arrays or named five-hour, weekly, and search-hourly slots. No estimated spend.",
       "source_platforms": [
         "linux",
@@ -403,10 +301,6 @@
       "name": "OpenRouter",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/OpenRouter/OpenRouterProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/openrouter.js"
-      ],
       "endpoint": "https://openrouter.ai/api/v1/key",
       "method": "GET",
       "credential": "bearer",
@@ -422,10 +316,6 @@
       "name": "ElevenLabs",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/ElevenLabs/ElevenLabsProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/elevenlabs.js"
-      ],
       "endpoint": "https://api.elevenlabs.io/v1/user/subscription",
       "method": "GET",
       "credential": "xi-api-key",
@@ -441,9 +331,6 @@
       "name": "Warp",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Warp/WarpProviderDescriptor.swift"
-      ],
       "endpoint": "https://app.warp.dev/graphql/v2?op=GetRequestLimitInfo",
       "method": "POST",
       "credential": "bearer",
@@ -459,9 +346,6 @@
       "name": "Windsurf",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Windsurf/WindsurfProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -469,10 +353,6 @@
       "name": "Zed",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Zed/ZedProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/zed.js"
-      ],
       "source_platforms": []
     },
     {
@@ -480,10 +360,6 @@
       "name": "Perplexity",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Perplexity/PerplexityProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/perplexity.js"
-      ],
       "source_platforms": []
     },
     {
@@ -491,19 +367,13 @@
       "name": "Xiaomi MiMo",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/MiMo/MiMoProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
       "id": "doubao",
       "name": "Doubao",
       "status": "unsupported",
-      "reason": "Upstream uses a chat-completions probe that can consume quota.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Doubao/DoubaoProviderDescriptor.swift"
-      ],
+      "reason": "The available validation path generates chat completions and can consume quota.",
       "source_platforms": []
     },
     {
@@ -511,10 +381,6 @@
       "name": "Sakana AI",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Sakana/SakanaProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/sakana.js"
-      ],
       "source_platforms": []
     },
     {
@@ -522,10 +388,6 @@
       "name": "Abacus AI",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Abacus/AbacusProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/abacus.js"
-      ],
       "source_platforms": []
     },
     {
@@ -533,9 +395,6 @@
       "name": "Mistral",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Mistral/MistralProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -543,9 +402,6 @@
       "name": "DeepSeek",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/DeepSeek/DeepSeekProviderDescriptor.swift"
-      ],
       "data": "API balance endpoint: total, granted, and topped-up balances by currency.",
       "source_platforms": [
         "linux",
@@ -558,10 +414,6 @@
       "name": "DeepInfra",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/DeepInfra/DeepInfraProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/deepinfra.js"
-      ],
       "source_platforms": []
     },
     {
@@ -569,9 +421,6 @@
       "name": "Codebuff",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Codebuff/CodebuffProviderDescriptor.swift"
-      ],
       "endpoint": "https://www.codebuff.com/api/v1/usage",
       "method": "POST",
       "credential": "bearer",
@@ -587,10 +436,6 @@
       "name": "Venice",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Venice/VeniceProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/venice.js"
-      ],
       "endpoint": "https://api.venice.ai/api/v1/billing/balance",
       "method": "GET",
       "credential": "bearer",
@@ -606,9 +451,6 @@
       "name": "Command Code",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/CommandCode/CommandCodeProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -616,10 +458,6 @@
       "name": "Qoder",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Qoder/QoderProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/qoder.js"
-      ],
       "source_platforms": []
     },
     {
@@ -627,9 +465,6 @@
       "name": "StepFun",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/StepFun/StepFunProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -637,9 +472,6 @@
       "name": "AWS Bedrock",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Bedrock/BedrockProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -647,9 +479,6 @@
       "name": "Grok",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Grok/GrokProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -657,9 +486,6 @@
       "name": "Groq",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Groq/GroqProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -667,10 +493,6 @@
       "name": "LLM Proxy",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/LLMProxy/LLMProxyProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/llmproxy.js"
-      ],
       "source_platforms": []
     },
     {
@@ -678,10 +500,6 @@
       "name": "LiteLLM",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/LiteLLM/LiteLLMProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/litellm.js"
-      ],
       "source_platforms": []
     },
     {
@@ -689,10 +507,6 @@
       "name": "Bifrost",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Bifrost/BifrostProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/bifrost.js"
-      ],
       "source_platforms": []
     },
     {
@@ -700,10 +514,6 @@
       "name": "Aixy",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Aixy/AixyProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/aixy.js"
-      ],
       "source_platforms": []
     },
     {
@@ -711,10 +521,6 @@
       "name": "Deepgram",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Deepgram/DeepgramProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/deepgram.js"
-      ],
       "source_platforms": []
     },
     {
@@ -722,10 +528,6 @@
       "name": "Poe",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Poe/PoeProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/poe.js"
-      ],
       "endpoint": "https://api.poe.com/usage/current_balance",
       "method": "GET",
       "credential": "bearer",
@@ -741,10 +543,6 @@
       "name": "Chutes",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Chutes/ChutesProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/chutes.js"
-      ],
       "source_platforms": []
     },
     {
@@ -752,10 +550,6 @@
       "name": "Neuralwatt",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/NeuralWatt/NeuralWattProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/neuralwatt.js"
-      ],
       "source_platforms": []
     },
     {
@@ -763,10 +557,6 @@
       "name": "Helmcode",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Helmcode/HelmcodeProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/helmcode.js"
-      ],
       "source_platforms": []
     },
     {
@@ -774,10 +564,6 @@
       "name": "ClawRouter",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/ClawRouter/ClawRouterProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/clawrouter.js"
-      ],
       "endpoint": "https://clawrouter.openclaw.ai/v1/usage",
       "method": "GET",
       "credential": "bearer",
@@ -793,10 +579,6 @@
       "name": "LongCat",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/LongCat/LongCatProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/longcat.js"
-      ],
       "source_platforms": []
     },
     {
@@ -804,10 +586,6 @@
       "name": "sub2api",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Sub2API/Sub2APIProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/sub2api.js"
-      ],
       "source_platforms": []
     },
     {
@@ -815,9 +593,6 @@
       "name": "Wayfinder",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Wayfinder/WayfinderProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -825,10 +600,6 @@
       "name": "ZenMux",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/ZenMux/ZenMuxProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/zenmux.js"
-      ],
       "endpoint": "https://zenmux.ai/api/v1/management/subscription/detail",
       "method": "GET",
       "credential": "bearer",
@@ -844,10 +615,6 @@
       "name": "ai&",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/AiAnd/AiAndProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/aiand.js"
-      ],
       "source_platforms": []
     },
     {
@@ -855,10 +622,6 @@
       "name": "ZoomMate",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/ZoomMate/ZoomMateProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/zoommate.js"
-      ],
       "source_platforms": []
     },
     {
@@ -866,10 +629,6 @@
       "name": "xAI",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/XAI/XAIProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/xai.js"
-      ],
       "endpoint": "https://management-api.x.ai/v1/billing/teams/{team_id}/prepaid/balance",
       "method": "GET",
       "credential": "bearer",
@@ -885,10 +644,6 @@
       "name": "X API",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/XAPI/XAPIProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/xapi.js"
-      ],
       "source_platforms": []
     },
     {
@@ -896,10 +651,6 @@
       "name": "Notion AI",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Notion/NotionProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/notion.js"
-      ],
       "source_platforms": []
     },
     {
@@ -907,9 +658,6 @@
       "name": "IBM Bob",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/IBMBob/IBMBobProviderDescriptor.swift"
-      ],
       "source_platforms": []
     },
     {
@@ -917,10 +665,6 @@
       "name": "Nous Portal",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Nous/NousProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/nous.js"
-      ],
       "endpoint": "https://portal.nousresearch.com/api/oauth/account",
       "method": "GET",
       "credential": "bearer",
@@ -935,11 +679,7 @@
       "id": "muse",
       "name": "Muse Code",
       "status": "unsupported",
-      "reason": "Upstream exchanges login credentials for an API key; key creation is excluded.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Muse/MuseProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/muse.js"
-      ],
+      "reason": "The available authentication path creates an API key; key creation is excluded.",
       "source_platforms": []
     },
     {
@@ -947,9 +687,6 @@
       "name": "CodeRabbit",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/CodeRabbit/CodeRabbitProviderDescriptor.swift"
-      ],
       "data": "Unix-only opt-in coderabbit usage probe: reported review count and plan; no inferred allowance.",
       "source_platforms": [
         "linux",
@@ -961,10 +698,6 @@
       "name": "Replicate",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Replicate/ReplicateProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/replicate.js"
-      ],
       "source_platforms": []
     },
     {
@@ -972,10 +705,6 @@
       "name": "Hugging Face",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/HuggingFace/HuggingFaceProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/huggingface.js"
-      ],
       "source_platforms": []
     },
     {
@@ -983,20 +712,13 @@
       "name": "Raycast",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Raycast/RaycastProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/raycast.js"
-      ],
       "source_platforms": []
     },
     {
       "id": "pi",
       "name": "Pi",
       "status": "unsupported",
-      "reason": "Upstream source is local transcript and estimated-cost history, excluded from this crate.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Pi/PiProviderDescriptor.swift"
-      ],
+      "reason": "Local transcript scanning and estimated-cost history are outside this crate's scope.",
       "source_platforms": []
     },
     {
@@ -1004,10 +726,6 @@
       "name": "v0",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/V0/V0ProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/v0.js"
-      ],
       "source_platforms": []
     },
     {
@@ -1015,10 +733,6 @@
       "name": "TypeSafe",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/TypeSafe/TypeSafeProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/typesafe.js"
-      ],
       "source_platforms": []
     },
     {
@@ -1026,10 +740,6 @@
       "name": "Charm Hyper",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Hyper/HyperProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/hyper.js"
-      ],
       "source_platforms": []
     },
     {
@@ -1037,10 +747,6 @@
       "name": "GitKraken AI",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/GitKraken/GitKrakenProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/gitkraken.js"
-      ],
       "endpoint": "https://api.gitkraken.dev/v1/ai-tasks/usage",
       "method": "GET",
       "credential": "bearer",
@@ -1056,10 +762,6 @@
       "name": "Future AGI",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/FutureAGI/FutureAGIProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/futureagi.js"
-      ],
       "source_platforms": []
     },
     {
@@ -1067,10 +769,6 @@
       "name": "DevPass",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/DevPass/DevPassProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/devpass.js"
-      ],
       "endpoint": "https://api.llmgateway.io/v1/key",
       "method": "GET",
       "credential": "bearer",
@@ -1086,10 +784,6 @@
       "name": "Atlas Cloud",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/AtlasCloud/AtlasCloudProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/atlascloud.js"
-      ],
       "endpoint": "https://api.atlascloud.ai/public/v1/balance",
       "method": "GET",
       "credential": "bearer",
@@ -1105,11 +799,6 @@
       "name": "Vercel AI Gateway",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Vercel/VercelProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/vercel.js",
-        "Sources/CodexBarCore/Resources/Plugins/vercel-budget.js"
-      ],
       "endpoint": "https://ai-gateway.vercel.sh/v1/credits",
       "method": "GET",
       "credential": "bearer",
@@ -1125,10 +814,6 @@
       "name": "llmman",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/LLMMan/LLMManProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/llmman.js"
-      ],
       "source_platforms": []
     },
     {
@@ -1136,10 +821,6 @@
       "name": "xKiro",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/XKiro/XKiroProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/xkiro.js"
-      ],
       "endpoint": "https://api.xkiro.com/v1/usage",
       "method": "GET",
       "credential": "bearer",
@@ -1155,10 +836,6 @@
       "name": "Muse (muse.ai)",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/MuseAI/MuseAIProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/museai.js"
-      ],
       "source_platforms": []
     },
     {
@@ -1166,10 +843,6 @@
       "name": "LithosAI",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/LithosAI/LithosAIProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/lithosai.js"
-      ],
       "source_platforms": []
     },
     {
@@ -1177,10 +850,6 @@
       "name": "WorkBuddy",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/WorkBuddy/WorkBuddyProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/workbuddy.js"
-      ],
       "source_platforms": []
     },
     {
@@ -1188,10 +857,6 @@
       "name": "Tavily",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Tavily/TavilyProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/tavily.js"
-      ],
       "endpoint": "https://api.tavily.com/usage",
       "method": "GET",
       "credential": "bearer",
@@ -1207,10 +872,6 @@
       "name": "Linkup",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Linkup/LinkupProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/linkup.js"
-      ],
       "endpoint": "https://api.linkup.so/v1/credits/balance",
       "method": "GET",
       "credential": "bearer",
@@ -1226,10 +887,6 @@
       "name": "TinyApi",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/TinyApi/TinyApiProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/tinyapi.js"
-      ],
       "source_platforms": []
     },
     {
@@ -1237,10 +894,6 @@
       "name": "Exa",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Exa/ExaProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/exa.js"
-      ],
       "endpoint": "https://admin-api.exa.ai/team-management/api-keys/{api_key_id}/usage?start_date={month_start}&end_date={now}",
       "method": "GET",
       "credential": "x-api-key",
@@ -1256,10 +909,6 @@
       "name": "Cosmic AI",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Cosmic/CosmicProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/cosmic.js"
-      ],
       "endpoint": "https://dapi.cosmicjs.com/v3/projects/usage?project_id={project_id}",
       "method": "GET",
       "credential": "bearer",
@@ -1275,10 +924,6 @@
       "name": "Aerostack",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Aerostack/AerostackProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/aerostack.js"
-      ],
       "endpoint": "https://api.aerostack.dev/api/billing/usage",
       "method": "GET",
       "credential": "bearer",
@@ -1294,10 +939,6 @@
       "name": "Sail Research",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/SailResearch/SailResearchProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/sailresearch.js"
-      ],
       "data": "Provider-reported 30-day spend and available balance, converted from cents.",
       "source_platforms": [
         "linux",
@@ -1310,10 +951,6 @@
       "name": "Sofya",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Sofya/SofyaProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/sofya.js"
-      ],
       "endpoint": "https://sofya.co/v1/auth/me",
       "method": "GET",
       "credential": "bearer",
@@ -1329,10 +966,6 @@
       "name": "fal",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Fal/FalProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/fal.js"
-      ],
       "endpoint": "https://api.fal.ai/v1/account/billing?expand=credits",
       "method": "GET",
       "credential": "fal",
@@ -1348,10 +981,6 @@
       "name": "FLORA",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Flora/FloraProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/flora.js"
-      ],
       "endpoint": "https://app.flora.ai/api/v1/workspaces/{workspace_id}/usage?start_date={month_date}&end_date={today}",
       "method": "GET",
       "credential": "bearer",
@@ -1367,10 +996,6 @@
       "name": "Parallel",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Parallel/ParallelProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/parallel.js"
-      ],
       "source_platforms": []
     },
     {
@@ -1378,10 +1003,6 @@
       "name": "Claude Platform",
       "status": "planned",
       "reason": "Adapter port pending.",
-      "sources": [
-        "Sources/CodexBarCore/Providers/ClaudePlatform/ClaudePlatformProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/claudeplatform.js"
-      ],
       "source_platforms": []
     },
     {
@@ -1389,10 +1010,6 @@
       "name": "Munito",
       "status": "implemented",
       "reason": "",
-      "sources": [
-        "Sources/CodexBarCore/Providers/Munito/MunitoProviderDescriptor.swift",
-        "Sources/CodexBarCore/Resources/Plugins/munito.js"
-      ],
       "data": "Admin API daily/monthly spend and limits. No organization-profile enrichment.",
       "source_platforms": [
         "linux",

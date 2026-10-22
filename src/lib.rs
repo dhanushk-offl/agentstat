@@ -24,9 +24,7 @@ mod probe;
 mod providers;
 mod transport;
 
-pub use catalog::{
-    CoverageStatus, ProviderDescriptor, ProviderId, UPSTREAM_REVISION, provider_catalog,
-};
+pub use catalog::{CoverageStatus, ProviderDescriptor, ProviderId, provider_catalog};
 pub use client::{Client, ClientBuilder};
 pub use credentials::{Credentials, Secret};
 pub use decimal::Decimal;

@@ -18,8 +18,7 @@ implemented = {provider["id"] for provider in providers if provider["status"] ==
 fixture_ids = {fixture["provider"] for fixture in fixtures}
 assert implemented - {"coderabbit"} == fixture_ids
 assert set(specs) <= implemented
-assert all(provider["sources"] for provider in providers)
-assert manifest["upstream_revision"] in (root / "src/catalog.rs").read_text()
+assert all(provider["name"] for provider in providers)
 for provider in providers:
     assert provider["status"] in {"implemented", "planned", "unsupported"}
     assert provider["status"] == "implemented" or provider["reason"]

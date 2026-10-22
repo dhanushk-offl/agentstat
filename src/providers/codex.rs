@@ -131,7 +131,7 @@ pub(super) fn parse(r: &FetchRequest, v: &Value) -> Result<UsageSnapshot> {
         &v["credits"]["balance"],
         credit_unit(r.provider),
     );
-    // Root, rate_limit, then workspace spend_control, matching upstream precedence.
+    // Credit-limit precedence: response root, rate_limit, then workspace spend_control.
     let limit = [
         &v["individual_limit"],
         &v["individualLimit"],

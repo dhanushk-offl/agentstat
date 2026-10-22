@@ -1,114 +1,112 @@
 # Provider coverage
 
-Pinned upstream: [`aa232d7f9ffc`](https://github.com/steipete/CodexBar/tree/aa232d7f9ffce83dcb559bf7a56abc93c477b40c).
+The catalog tracks implemented, planned, and unsupported integrations. Implemented entries have request and normalization fixtures for the data described below. Enabling a Cargo feature does not implement a planned integration.
 
-Implemented means the data surface below has request and parser fixtures; it does not imply complete upstream source/enrichment parity. Planned entries return an explicit error. Feature flags exist for stable catalog IDs and do not imply support.
-
-| Provider ID | Status | Data surface / reason | Upstream |
-| --- | --- | --- | --- |
-| `codex` | implemented | OAuth session/weekly/additional windows, credits, monthly credit limits; optional reset-credit count. Native auth.json read is opt-in. No CLI/PAT/web-dashboard fallback. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift) |
-| `openai` | implemented | Admin API organization cost report for the last 30 days, with bounded pagination. No legacy credit-grant fallback or usage charts. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/openai.js) |
-| `azureopenai` | unsupported | Upstream validates access with inference traffic; no compatible quota endpoint has been identified. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/AzureOpenAI/AzureOpenAIProviderDescriptor.swift) |
-| `claude` | implemented | OAuth or explicit-organization manual cookie quotas, scoped weekly windows, extra usage; Admin API organization cost report. No PTY, keychain, browser extraction, or cloud grant inventory. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Claude/ClaudeProviderDescriptor.swift) |
-| `clinepass` | implemented | API five-hour, weekly, and monthly percentage quotas. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/clinepass.js) |
-| `cursor` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Cursor/CursorProviderDescriptor.swift) |
-| `opencode` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/OpenCode/OpenCodeProviderDescriptor.swift) |
-| `opencodego` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/OpenCodeGo/OpenCodeGoProviderDescriptor.swift) |
-| `alibaba` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Alibaba/AlibabaCodingPlanProviderDescriptor.swift) |
-| `alibabatokenplan` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Alibaba/AlibabaTokenPlanProviderDescriptor.swift) |
-| `qwencloud` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/qwencloud-team.js) |
-| `factory` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Factory/FactoryProviderDescriptor.swift) |
-| `fireworks` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/fireworks.js) |
-| `gemini` | implemented | Existing bearer token → retrieveUserQuota model buckets; optional explicit project ID. No token refresh or project discovery. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/gemini-web.js) |
-| `antigravity` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Antigravity/AntigravityProviderDescriptor.swift) |
-| `copilot` | implemented | Existing GitHub OAuth token → monthly quota snapshots; preserves explicit unlimited allowances. No device login or enterprise host discovery. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Copilot/CopilotProviderDescriptor.swift) |
-| `devin` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Devin/DevinProviderDescriptor.swift) |
-| `zai` | implemented | Personal quota API: token/time/credit windows. No team routing or model-usage enrichment. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/zai.js) |
-| `minimax` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/MiniMax/MiniMaxProviderDescriptor.swift) |
-| `manus` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/manus.js) |
-| `kimi` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Kimi/KimiProviderDescriptor.swift) |
-| `kilo` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Kilo/KiloProviderDescriptor.swift) |
-| `kiro` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Kiro/KiroProviderDescriptor.swift) |
-| `vertexai` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/VertexAI/VertexAIProviderDescriptor.swift) |
-| `augment` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Augment/AugmentProviderDescriptor.swift) |
-| `jetbrains` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/JetBrains/JetBrainsProviderDescriptor.swift) |
-| `moonshot` | implemented | available_balance balance, cash_balance balance, voucher_balance balance. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/moonshot.js) |
-| `amp` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Amp/AmpProviderDescriptor.swift) |
-| `t3chat` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/t3chat.js) |
-| `langdock` | implemented | session quota, weekly quota. Manual Cookie header only. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/langdock.js) |
-| `ollama` | implemented | included quota, purchased balance. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/ollama-api.js) |
-| `synthetic` | implemented | API quota arrays or named five-hour, weekly, and search-hourly slots. No estimated spend. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/synthetic.js) |
-| `openrouter` | implemented | key quota, lifetime spend, daily spend, weekly spend, monthly spend. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/openrouter.js) |
-| `elevenlabs` | implemented | characters quota, voice-slots quota, professional-voices quota. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/elevenlabs.js) |
-| `warp` | implemented | requests quota. Bonus grants are not ported. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Warp/WarpProviderDescriptor.swift) |
-| `windsurf` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Windsurf/WindsurfProviderDescriptor.swift) |
-| `zed` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/zed.js) |
-| `perplexity` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/perplexity.js) |
-| `mimo` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/MiMo/MiMoProviderDescriptor.swift) |
-| `doubao` | unsupported | Upstream uses a chat-completions probe that can consume quota. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Doubao/DoubaoProviderDescriptor.swift) |
-| `sakana` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/sakana.js) |
-| `abacus` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/abacus.js) |
-| `mistral` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Mistral/MistralProviderDescriptor.swift) |
-| `deepseek` | implemented | API balance endpoint: total, granted, and topped-up balances by currency. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/DeepSeek/DeepSeekProviderDescriptor.swift) |
-| `deepinfra` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/deepinfra.js) |
-| `codebuff` | implemented | credits quota, available balance. Subscription weekly enrichment is not ported. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Codebuff/CodebuffProviderDescriptor.swift) |
-| `venice` | implemented | usd balance, diem balance. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/venice.js) |
-| `commandcode` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/CommandCode/CommandCodeProviderDescriptor.swift) |
-| `qoder` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/qoder.js) |
-| `stepfun` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/StepFun/StepFunProviderDescriptor.swift) |
-| `bedrock` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Bedrock/BedrockProviderDescriptor.swift) |
-| `grok` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Grok/GrokProviderDescriptor.swift) |
-| `groq` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Groq/GroqProviderDescriptor.swift) |
-| `llmproxy` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/llmproxy.js) |
-| `litellm` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/litellm.js) |
-| `bifrost` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/bifrost.js) |
-| `aixy` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/aixy.js) |
-| `deepgram` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/deepgram.js) |
-| `poe` | implemented | points balance. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/poe.js) |
-| `chutes` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/chutes.js) |
-| `neuralwatt` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/neuralwatt.js) |
-| `helmcode` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/helmcode.js) |
-| `clawrouter` | implemented | monthly-budget quota, monthly-actual spend. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/clawrouter.js) |
-| `longcat` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/longcat.js) |
-| `sub2api` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/sub2api.js) |
-| `wayfinder` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Wayfinder/WayfinderProviderDescriptor.swift) |
-| `zenmux` | implemented | five-hour quota, weekly quota. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/zenmux.js) |
-| `aiand` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/aiand.js) |
-| `zoommate` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/zoommate.js) |
-| `xai` | implemented | prepaid balance. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/xai.js) |
-| `xapi` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/xapi.js) |
-| `notion` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/notion.js) |
-| `ibmbob` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/IBMBob/IBMBobProviderDescriptor.swift) |
-| `nous` | implemented | subscription quota, purchased balance, total balance, subscription balance. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/nous.js) |
-| `muse` | unsupported | Upstream exchanges login credentials for an API key; key creation is excluded. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/muse.js) |
-| `coderabbit` | implemented | Unix-only opt-in coderabbit usage probe: reported review count and plan; no inferred allowance. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/CodeRabbit/CodeRabbitProviderDescriptor.swift) |
-| `replicate` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/replicate.js) |
-| `huggingface` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/huggingface.js) |
-| `raycast` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/raycast.js) |
-| `pi` | unsupported | Upstream source is local transcript and estimated-cost history, excluded from this crate. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Providers/Pi/PiProviderDescriptor.swift) |
-| `v0` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/v0.js) |
-| `typesafe` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/typesafe.js) |
-| `hyper` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/hyper.js) |
-| `gitkraken` | implemented | personal quota, organization quota. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/gitkraken.js) |
-| `futureagi` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/futureagi.js) |
-| `devpass` | implemented | key-all-time quota, plan quota, premium-weekly quota. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/devpass.js) |
-| `atlascloud` | implemented | available balance. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/atlascloud.js) |
-| `vercel` | implemented | available balance, lifetime spend. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/vercel-budget.js) |
-| `llmman` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/llmman.js) |
-| `xkiro` | implemented | daily-free-tokens quota. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/xkiro.js) |
-| `museai` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/museai.js) |
-| `lithosai` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/lithosai.js) |
-| `workbuddy` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/workbuddy.js) |
-| `tavily` | implemented | plan quota, key quota, paygo quota. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/tavily.js) |
-| `linkup` | implemented | available balance. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/linkup.js) |
-| `tinyapi` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/tinyapi.js) |
-| `exa` | implemented | month-to-date spend. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/exa.js) |
-| `cosmic` | implemented | input quota, output quota. Compact textual allowances are not interpreted; numeric counters remain available. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/cosmic.js) |
-| `aerostack` | implemented | monthly-tokens quota. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/aerostack.js) |
-| `sailresearch` | implemented | Provider-reported 30-day spend and available balance, converted from cents. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/sailresearch.js) |
-| `sofya` | implemented | credits balance, plan_credits balance, purchased_credits balance. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/sofya.js) |
-| `fal` | implemented | available balance. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/fal.js) |
-| `flora` | implemented | available balance, monthly spend. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/flora.js) |
-| `parallel` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/parallel.js) |
-| `claudeplatform` | planned | Adapter port pending. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/claudeplatform.js) |
-| `munito` | implemented | Admin API daily/monthly spend and limits. No organization-profile enrichment. | [source](https://github.com/steipete/CodexBar/blob/aa232d7f9ffce83dcb559bf7a56abc93c477b40c/Sources/CodexBarCore/Resources/Plugins/munito.js) |
+| Provider ID | Status | Data surface / reason |
+| --- | --- | --- |
+| `codex` | implemented | OAuth session/weekly/additional windows, credits, monthly credit limits; optional reset-credit count. Native auth.json read is opt-in. No CLI/PAT/web-dashboard fallback. |
+| `openai` | implemented | Admin API organization cost report for the last 30 days, with bounded pagination. No legacy credit-grant fallback or usage charts. |
+| `azureopenai` | unsupported | Only an inference-based access probe has been identified; no compatible read-only quota endpoint is available. |
+| `claude` | implemented | OAuth or explicit-organization manual cookie quotas, scoped weekly windows, extra usage; Admin API organization cost report. No PTY, keychain, browser extraction, or cloud grant inventory. |
+| `clinepass` | implemented | API five-hour, weekly, and monthly percentage quotas. |
+| `cursor` | planned | Adapter port pending. |
+| `opencode` | implemented | Console session cookie: five-hour, weekly, optional monthly USD-equivalent quota meters and resets. Confirmed PAYG accounts: reported 30-day spend and optional prepaid balance. Explicit workspace selection; discovery requires exactly one workspace. No browser extraction or legacy server-function fallback. |
+| `opencodego` | planned | Adapter port pending. |
+| `alibaba` | planned | Adapter port pending. |
+| `alibabatokenplan` | planned | Adapter port pending. |
+| `qwencloud` | planned | Adapter port pending. |
+| `factory` | planned | Adapter port pending. |
+| `fireworks` | planned | Adapter port pending. |
+| `gemini` | implemented | Existing bearer token → retrieveUserQuota model buckets; optional explicit project ID. No token refresh or project discovery. |
+| `antigravity` | planned | Adapter port pending. |
+| `copilot` | implemented | Existing GitHub OAuth token → monthly quota snapshots; preserves explicit unlimited allowances. No device login or enterprise host discovery. |
+| `devin` | planned | Adapter port pending. |
+| `zai` | implemented | Personal quota API: token/time/credit windows. No team routing or model-usage enrichment. |
+| `minimax` | planned | Adapter port pending. |
+| `manus` | planned | Adapter port pending. |
+| `kimi` | planned | Adapter port pending. |
+| `kilo` | planned | Adapter port pending. |
+| `kiro` | planned | Adapter port pending. |
+| `vertexai` | planned | Adapter port pending. |
+| `augment` | planned | Adapter port pending. |
+| `jetbrains` | planned | Adapter port pending. |
+| `moonshot` | implemented | available_balance balance, cash_balance balance, voucher_balance balance. |
+| `amp` | planned | Adapter port pending. |
+| `t3chat` | planned | Adapter port pending. |
+| `langdock` | implemented | session quota, weekly quota. Manual Cookie header only. |
+| `ollama` | implemented | included quota, purchased balance. |
+| `synthetic` | implemented | API quota arrays or named five-hour, weekly, and search-hourly slots. No estimated spend. |
+| `openrouter` | implemented | key quota, lifetime spend, daily spend, weekly spend, monthly spend. |
+| `elevenlabs` | implemented | characters quota, voice-slots quota, professional-voices quota. |
+| `warp` | implemented | requests quota. Bonus grants are not ported. |
+| `windsurf` | planned | Adapter port pending. |
+| `zed` | planned | Adapter port pending. |
+| `perplexity` | planned | Adapter port pending. |
+| `mimo` | planned | Adapter port pending. |
+| `doubao` | unsupported | The available validation path generates chat completions and can consume quota. |
+| `sakana` | planned | Adapter port pending. |
+| `abacus` | planned | Adapter port pending. |
+| `mistral` | planned | Adapter port pending. |
+| `deepseek` | implemented | API balance endpoint: total, granted, and topped-up balances by currency. |
+| `deepinfra` | planned | Adapter port pending. |
+| `codebuff` | implemented | credits quota, available balance. Subscription weekly enrichment is not ported. |
+| `venice` | implemented | usd balance, diem balance. |
+| `commandcode` | planned | Adapter port pending. |
+| `qoder` | planned | Adapter port pending. |
+| `stepfun` | planned | Adapter port pending. |
+| `bedrock` | planned | Adapter port pending. |
+| `grok` | planned | Adapter port pending. |
+| `groq` | planned | Adapter port pending. |
+| `llmproxy` | planned | Adapter port pending. |
+| `litellm` | planned | Adapter port pending. |
+| `bifrost` | planned | Adapter port pending. |
+| `aixy` | planned | Adapter port pending. |
+| `deepgram` | planned | Adapter port pending. |
+| `poe` | implemented | points balance. |
+| `chutes` | planned | Adapter port pending. |
+| `neuralwatt` | planned | Adapter port pending. |
+| `helmcode` | planned | Adapter port pending. |
+| `clawrouter` | implemented | monthly-budget quota, monthly-actual spend. |
+| `longcat` | planned | Adapter port pending. |
+| `sub2api` | planned | Adapter port pending. |
+| `wayfinder` | planned | Adapter port pending. |
+| `zenmux` | implemented | five-hour quota, weekly quota. |
+| `aiand` | planned | Adapter port pending. |
+| `zoommate` | planned | Adapter port pending. |
+| `xai` | implemented | prepaid balance. |
+| `xapi` | planned | Adapter port pending. |
+| `notion` | planned | Adapter port pending. |
+| `ibmbob` | planned | Adapter port pending. |
+| `nous` | implemented | subscription quota, purchased balance, total balance, subscription balance. |
+| `muse` | unsupported | The available authentication path creates an API key; key creation is excluded. |
+| `coderabbit` | implemented | Unix-only opt-in coderabbit usage probe: reported review count and plan; no inferred allowance. |
+| `replicate` | planned | Adapter port pending. |
+| `huggingface` | planned | Adapter port pending. |
+| `raycast` | planned | Adapter port pending. |
+| `pi` | unsupported | Local transcript scanning and estimated-cost history are outside this crate's scope. |
+| `v0` | planned | Adapter port pending. |
+| `typesafe` | planned | Adapter port pending. |
+| `hyper` | planned | Adapter port pending. |
+| `gitkraken` | implemented | personal quota, organization quota. |
+| `futureagi` | planned | Adapter port pending. |
+| `devpass` | implemented | key-all-time quota, plan quota, premium-weekly quota. |
+| `atlascloud` | implemented | available balance. |
+| `vercel` | implemented | available balance, lifetime spend. |
+| `llmman` | planned | Adapter port pending. |
+| `xkiro` | implemented | daily-free-tokens quota. |
+| `museai` | planned | Adapter port pending. |
+| `lithosai` | planned | Adapter port pending. |
+| `workbuddy` | planned | Adapter port pending. |
+| `tavily` | implemented | plan quota, key quota, paygo quota. |
+| `linkup` | implemented | available balance. |
+| `tinyapi` | planned | Adapter port pending. |
+| `exa` | implemented | month-to-date spend. |
+| `cosmic` | implemented | input quota, output quota. Compact textual allowances are not interpreted; numeric counters remain available. |
+| `aerostack` | implemented | monthly-tokens quota. |
+| `sailresearch` | implemented | Provider-reported 30-day spend and available balance, converted from cents. |
+| `sofya` | implemented | credits balance, plan_credits balance, purchased_credits balance. |
+| `fal` | implemented | available balance. |
+| `flora` | implemented | available balance, monthly spend. |
+| `parallel` | planned | Adapter port pending. |
+| `claudeplatform` | planned | Adapter port pending. |
+| `munito` | implemented | Admin API daily/monthly spend and limits. No organization-profile enrichment. |

@@ -735,5 +735,37 @@
     "spend": [
       "0.3"
     ]
+  },
+  {
+    "provider": "opencode",
+    "path": "/console/api/go/status",
+    "credential": "cookie",
+    "cookie": "__Host-console_session=test-secret",
+    "scope": {
+      "workspace_id": "wrk_SELECTED"
+    },
+    "body": {
+      "access": {
+        "endsAt": "2026-11-01T00:00:00Z",
+        "meters": {
+          "fiveHour": {
+            "usedMicroCents": "300000000",
+            "limitMicroCents": "1200000000",
+            "resetsAt": "2026-10-23T03:00:00Z"
+          },
+          "week": {
+            "usedMicroCents": "1200000000",
+            "limitMicroCents": "3000000000",
+            "resetsAt": "2026-10-29T00:00:00Z"
+          },
+          "month": {
+            "usedMicroCents": "600000000",
+            "limitMicroCents": "6000000000"
+          }
+        }
+      }
+    },
+    "windows": 3,
+    "percent": 25
   }
 ]

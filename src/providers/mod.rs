@@ -4,6 +4,7 @@ mod codex;
 mod common;
 mod custom;
 mod declarative;
+mod opencode;
 use crate::*;
 pub(crate) async fn fetch(client: &Client, request: &FetchRequest) -> Result<UsageSnapshot> {
     if [
@@ -26,6 +27,9 @@ pub(crate) async fn fetch(client: &Client, request: &FetchRequest) -> Result<Usa
         }
         ProviderId::Claude => {
             request.scope.account_id.is_some() || request.scope.workspace_id.is_some()
+        }
+        ProviderId::OpenCode => {
+            request.scope.account_id.is_some() || request.scope.organization_id.is_some()
         }
         _ => {
             request.scope.account_id.is_some()
@@ -69,6 +73,7 @@ pub(crate) async fn fetch(client: &Client, request: &FetchRequest) -> Result<Usa
         }
         ProviderId::Claude => claude::fetch(client, request).await,
         ProviderId::OpenAI => admin::fetch(client, request).await,
+        ProviderId::OpenCode => opencode::fetch(client, request).await,
         _ => {
             if let Some(spec) = declarative::spec(request.provider) {
                 declarative::fetch(client, request, spec).await

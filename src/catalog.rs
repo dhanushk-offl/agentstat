@@ -1,8 +1,7 @@
-//! Catalog generated from the pinned first-party manifest, including bundled plugin providers.
+//! Provider IDs, coverage status, and build-time availability.
 use crate::{AgentStatError, Result};
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
-pub const UPSTREAM_REVISION: &str = "aa232d7f9ffce83dcb559bf7a56abc93c477b40c";
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum ProviderId {
@@ -446,7 +445,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "codex"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift",
             },
             Self::OpenAI => ProviderDescriptor {
                 id: self,
@@ -454,15 +452,13 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "openai"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/OpenAI/OpenAIAPIProviderDescriptor.swift",
             },
             Self::AzureOpenAI => ProviderDescriptor {
                 id: self,
                 name: "Azure OpenAI",
                 status: CoverageStatus::Unsupported,
                 enabled: cfg!(feature = "azureopenai"),
-                reason: "Upstream validates access with inference traffic; no compatible quota endpoint has been identified.",
-                upstream_source: "Sources/CodexBarCore/Providers/AzureOpenAI/AzureOpenAIProviderDescriptor.swift",
+                reason: "Only an inference-based access probe has been identified; no compatible read-only quota endpoint is available.",
             },
             Self::Claude => ProviderDescriptor {
                 id: self,
@@ -470,7 +466,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "claude"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Claude/ClaudeProviderDescriptor.swift",
             },
             Self::ClinePass => ProviderDescriptor {
                 id: self,
@@ -478,7 +473,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "clinepass"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/ClinePass/ClinePassProviderDescriptor.swift",
             },
             Self::Cursor => ProviderDescriptor {
                 id: self,
@@ -486,15 +480,13 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "cursor"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Cursor/CursorProviderDescriptor.swift",
             },
             Self::OpenCode => ProviderDescriptor {
                 id: self,
                 name: "OpenCode",
-                status: CoverageStatus::Planned,
+                status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "opencode"),
-                reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/OpenCode/OpenCodeProviderDescriptor.swift",
+                reason: "",
             },
             Self::OpenCodeGo => ProviderDescriptor {
                 id: self,
@@ -502,7 +494,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "opencodego"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/OpenCodeGo/OpenCodeGoProviderDescriptor.swift",
             },
             Self::Alibaba => ProviderDescriptor {
                 id: self,
@@ -510,7 +501,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "alibaba"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Alibaba/AlibabaCodingPlanProviderDescriptor.swift",
             },
             Self::AlibabaTokenPlan => ProviderDescriptor {
                 id: self,
@@ -518,7 +508,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "alibabatokenplan"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Alibaba/AlibabaTokenPlanProviderDescriptor.swift",
             },
             Self::QwenCloud => ProviderDescriptor {
                 id: self,
@@ -526,7 +515,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "qwencloud"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/QwenCloud/QwenCloudProviderDescriptor.swift",
             },
             Self::Factory => ProviderDescriptor {
                 id: self,
@@ -534,7 +522,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "factory"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Factory/FactoryProviderDescriptor.swift",
             },
             Self::Fireworks => ProviderDescriptor {
                 id: self,
@@ -542,7 +529,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "fireworks"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Fireworks/FireworksProviderDescriptor.swift",
             },
             Self::Gemini => ProviderDescriptor {
                 id: self,
@@ -550,7 +536,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "gemini"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Gemini/GeminiProviderDescriptor.swift",
             },
             Self::Antigravity => ProviderDescriptor {
                 id: self,
@@ -558,7 +543,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "antigravity"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Antigravity/AntigravityProviderDescriptor.swift",
             },
             Self::Copilot => ProviderDescriptor {
                 id: self,
@@ -566,7 +550,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "copilot"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Copilot/CopilotProviderDescriptor.swift",
             },
             Self::Devin => ProviderDescriptor {
                 id: self,
@@ -574,7 +557,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "devin"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Devin/DevinProviderDescriptor.swift",
             },
             Self::Zai => ProviderDescriptor {
                 id: self,
@@ -582,7 +564,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "zai"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Zai/ZaiProviderDescriptor.swift",
             },
             Self::Minimax => ProviderDescriptor {
                 id: self,
@@ -590,7 +571,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "minimax"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/MiniMax/MiniMaxProviderDescriptor.swift",
             },
             Self::Manus => ProviderDescriptor {
                 id: self,
@@ -598,7 +578,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "manus"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Manus/ManusProviderDescriptor.swift",
             },
             Self::Kimi => ProviderDescriptor {
                 id: self,
@@ -606,7 +585,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "kimi"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Kimi/KimiProviderDescriptor.swift",
             },
             Self::Kilo => ProviderDescriptor {
                 id: self,
@@ -614,7 +592,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "kilo"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Kilo/KiloProviderDescriptor.swift",
             },
             Self::Kiro => ProviderDescriptor {
                 id: self,
@@ -622,7 +599,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "kiro"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Kiro/KiroProviderDescriptor.swift",
             },
             Self::VertexAI => ProviderDescriptor {
                 id: self,
@@ -630,7 +606,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "vertexai"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/VertexAI/VertexAIProviderDescriptor.swift",
             },
             Self::Augment => ProviderDescriptor {
                 id: self,
@@ -638,7 +613,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "augment"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Augment/AugmentProviderDescriptor.swift",
             },
             Self::JetBrains => ProviderDescriptor {
                 id: self,
@@ -646,7 +620,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "jetbrains"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/JetBrains/JetBrainsProviderDescriptor.swift",
             },
             Self::Moonshot => ProviderDescriptor {
                 id: self,
@@ -654,7 +627,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "moonshot"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Moonshot/MoonshotProviderDescriptor.swift",
             },
             Self::Amp => ProviderDescriptor {
                 id: self,
@@ -662,7 +634,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "amp"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Amp/AmpProviderDescriptor.swift",
             },
             Self::T3Chat => ProviderDescriptor {
                 id: self,
@@ -670,7 +641,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "t3chat"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/T3Chat/T3ChatProviderDescriptor.swift",
             },
             Self::Langdock => ProviderDescriptor {
                 id: self,
@@ -678,7 +648,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "langdock"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Langdock/LangdockProviderDescriptor.swift",
             },
             Self::Ollama => ProviderDescriptor {
                 id: self,
@@ -686,7 +655,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "ollama"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Ollama/OllamaProviderDescriptor.swift",
             },
             Self::Synthetic => ProviderDescriptor {
                 id: self,
@@ -694,7 +662,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "synthetic"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Synthetic/SyntheticProviderDescriptor.swift",
             },
             Self::OpenRouter => ProviderDescriptor {
                 id: self,
@@ -702,7 +669,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "openrouter"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/OpenRouter/OpenRouterProviderDescriptor.swift",
             },
             Self::ElevenLabs => ProviderDescriptor {
                 id: self,
@@ -710,7 +676,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "elevenlabs"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/ElevenLabs/ElevenLabsProviderDescriptor.swift",
             },
             Self::Warp => ProviderDescriptor {
                 id: self,
@@ -718,7 +683,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "warp"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Warp/WarpProviderDescriptor.swift",
             },
             Self::Windsurf => ProviderDescriptor {
                 id: self,
@@ -726,7 +690,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "windsurf"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Windsurf/WindsurfProviderDescriptor.swift",
             },
             Self::Zed => ProviderDescriptor {
                 id: self,
@@ -734,7 +697,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "zed"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Zed/ZedProviderDescriptor.swift",
             },
             Self::Perplexity => ProviderDescriptor {
                 id: self,
@@ -742,7 +704,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "perplexity"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Perplexity/PerplexityProviderDescriptor.swift",
             },
             Self::Mimo => ProviderDescriptor {
                 id: self,
@@ -750,15 +711,13 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "mimo"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/MiMo/MiMoProviderDescriptor.swift",
             },
             Self::Doubao => ProviderDescriptor {
                 id: self,
                 name: "Doubao",
                 status: CoverageStatus::Unsupported,
                 enabled: cfg!(feature = "doubao"),
-                reason: "Upstream uses a chat-completions probe that can consume quota.",
-                upstream_source: "Sources/CodexBarCore/Providers/Doubao/DoubaoProviderDescriptor.swift",
+                reason: "The available validation path generates chat completions and can consume quota.",
             },
             Self::Sakana => ProviderDescriptor {
                 id: self,
@@ -766,7 +725,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "sakana"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Sakana/SakanaProviderDescriptor.swift",
             },
             Self::Abacus => ProviderDescriptor {
                 id: self,
@@ -774,7 +732,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "abacus"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Abacus/AbacusProviderDescriptor.swift",
             },
             Self::Mistral => ProviderDescriptor {
                 id: self,
@@ -782,7 +739,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "mistral"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Mistral/MistralProviderDescriptor.swift",
             },
             Self::DeepSeek => ProviderDescriptor {
                 id: self,
@@ -790,7 +746,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "deepseek"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/DeepSeek/DeepSeekProviderDescriptor.swift",
             },
             Self::DeepInfra => ProviderDescriptor {
                 id: self,
@@ -798,7 +753,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "deepinfra"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/DeepInfra/DeepInfraProviderDescriptor.swift",
             },
             Self::Codebuff => ProviderDescriptor {
                 id: self,
@@ -806,7 +760,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "codebuff"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Codebuff/CodebuffProviderDescriptor.swift",
             },
             Self::Venice => ProviderDescriptor {
                 id: self,
@@ -814,7 +767,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "venice"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Venice/VeniceProviderDescriptor.swift",
             },
             Self::CommandCode => ProviderDescriptor {
                 id: self,
@@ -822,7 +774,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "commandcode"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/CommandCode/CommandCodeProviderDescriptor.swift",
             },
             Self::Qoder => ProviderDescriptor {
                 id: self,
@@ -830,7 +781,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "qoder"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Qoder/QoderProviderDescriptor.swift",
             },
             Self::Stepfun => ProviderDescriptor {
                 id: self,
@@ -838,7 +788,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "stepfun"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/StepFun/StepFunProviderDescriptor.swift",
             },
             Self::Bedrock => ProviderDescriptor {
                 id: self,
@@ -846,7 +795,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "bedrock"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Bedrock/BedrockProviderDescriptor.swift",
             },
             Self::Grok => ProviderDescriptor {
                 id: self,
@@ -854,7 +802,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "grok"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Grok/GrokProviderDescriptor.swift",
             },
             Self::Groq => ProviderDescriptor {
                 id: self,
@@ -862,7 +809,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "groq"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Groq/GroqProviderDescriptor.swift",
             },
             Self::LLMProxy => ProviderDescriptor {
                 id: self,
@@ -870,7 +816,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "llmproxy"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/LLMProxy/LLMProxyProviderDescriptor.swift",
             },
             Self::LiteLLM => ProviderDescriptor {
                 id: self,
@@ -878,7 +823,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "litellm"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/LiteLLM/LiteLLMProviderDescriptor.swift",
             },
             Self::Bifrost => ProviderDescriptor {
                 id: self,
@@ -886,7 +830,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "bifrost"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Bifrost/BifrostProviderDescriptor.swift",
             },
             Self::Aixy => ProviderDescriptor {
                 id: self,
@@ -894,7 +837,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "aixy"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Aixy/AixyProviderDescriptor.swift",
             },
             Self::Deepgram => ProviderDescriptor {
                 id: self,
@@ -902,7 +844,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "deepgram"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Deepgram/DeepgramProviderDescriptor.swift",
             },
             Self::Poe => ProviderDescriptor {
                 id: self,
@@ -910,7 +851,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "poe"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Poe/PoeProviderDescriptor.swift",
             },
             Self::Chutes => ProviderDescriptor {
                 id: self,
@@ -918,7 +858,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "chutes"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Chutes/ChutesProviderDescriptor.swift",
             },
             Self::NeuralWatt => ProviderDescriptor {
                 id: self,
@@ -926,7 +865,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "neuralwatt"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/NeuralWatt/NeuralWattProviderDescriptor.swift",
             },
             Self::Helmcode => ProviderDescriptor {
                 id: self,
@@ -934,7 +872,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "helmcode"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Helmcode/HelmcodeProviderDescriptor.swift",
             },
             Self::Clawrouter => ProviderDescriptor {
                 id: self,
@@ -942,7 +879,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "clawrouter"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/ClawRouter/ClawRouterProviderDescriptor.swift",
             },
             Self::LongCat => ProviderDescriptor {
                 id: self,
@@ -950,7 +886,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "longcat"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/LongCat/LongCatProviderDescriptor.swift",
             },
             Self::Sub2API => ProviderDescriptor {
                 id: self,
@@ -958,7 +893,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "sub2api"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Sub2API/Sub2APIProviderDescriptor.swift",
             },
             Self::Wayfinder => ProviderDescriptor {
                 id: self,
@@ -966,7 +900,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "wayfinder"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Wayfinder/WayfinderProviderDescriptor.swift",
             },
             Self::Zenmux => ProviderDescriptor {
                 id: self,
@@ -974,7 +907,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "zenmux"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/ZenMux/ZenMuxProviderDescriptor.swift",
             },
             Self::Aiand => ProviderDescriptor {
                 id: self,
@@ -982,7 +914,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "aiand"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/AiAnd/AiAndProviderDescriptor.swift",
             },
             Self::ZoomMate => ProviderDescriptor {
                 id: self,
@@ -990,7 +921,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "zoommate"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/ZoomMate/ZoomMateProviderDescriptor.swift",
             },
             Self::Xai => ProviderDescriptor {
                 id: self,
@@ -998,7 +928,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "xai"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/XAI/XAIProviderDescriptor.swift",
             },
             Self::XApi => ProviderDescriptor {
                 id: self,
@@ -1006,7 +935,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "xapi"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/XAPI/XAPIProviderDescriptor.swift",
             },
             Self::Notion => ProviderDescriptor {
                 id: self,
@@ -1014,7 +942,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "notion"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Notion/NotionProviderDescriptor.swift",
             },
             Self::IBMBob => ProviderDescriptor {
                 id: self,
@@ -1022,7 +949,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "ibmbob"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/IBMBob/IBMBobProviderDescriptor.swift",
             },
             Self::Nous => ProviderDescriptor {
                 id: self,
@@ -1030,15 +956,13 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "nous"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Nous/NousProviderDescriptor.swift",
             },
             Self::Muse => ProviderDescriptor {
                 id: self,
                 name: "Muse Code",
                 status: CoverageStatus::Unsupported,
                 enabled: cfg!(feature = "muse"),
-                reason: "Upstream exchanges login credentials for an API key; key creation is excluded.",
-                upstream_source: "Sources/CodexBarCore/Providers/Muse/MuseProviderDescriptor.swift",
+                reason: "The available authentication path creates an API key; key creation is excluded.",
             },
             Self::CodeRabbit => ProviderDescriptor {
                 id: self,
@@ -1046,7 +970,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(all(feature = "coderabbit", feature = "local-probes")),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/CodeRabbit/CodeRabbitProviderDescriptor.swift",
             },
             Self::Replicate => ProviderDescriptor {
                 id: self,
@@ -1054,7 +977,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "replicate"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Replicate/ReplicateProviderDescriptor.swift",
             },
             Self::HuggingFace => ProviderDescriptor {
                 id: self,
@@ -1062,7 +984,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "huggingface"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/HuggingFace/HuggingFaceProviderDescriptor.swift",
             },
             Self::Raycast => ProviderDescriptor {
                 id: self,
@@ -1070,15 +991,13 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "raycast"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Raycast/RaycastProviderDescriptor.swift",
             },
             Self::Pi => ProviderDescriptor {
                 id: self,
                 name: "Pi",
                 status: CoverageStatus::Unsupported,
                 enabled: cfg!(feature = "pi"),
-                reason: "Upstream source is local transcript and estimated-cost history, excluded from this crate.",
-                upstream_source: "Sources/CodexBarCore/Providers/Pi/PiProviderDescriptor.swift",
+                reason: "Local transcript scanning and estimated-cost history are outside this crate's scope.",
             },
             Self::V0 => ProviderDescriptor {
                 id: self,
@@ -1086,7 +1005,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "v0"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/V0/V0ProviderDescriptor.swift",
             },
             Self::TypeSafe => ProviderDescriptor {
                 id: self,
@@ -1094,7 +1012,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "typesafe"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/TypeSafe/TypeSafeProviderDescriptor.swift",
             },
             Self::Hyper => ProviderDescriptor {
                 id: self,
@@ -1102,7 +1019,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "hyper"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Hyper/HyperProviderDescriptor.swift",
             },
             Self::GitKraken => ProviderDescriptor {
                 id: self,
@@ -1110,7 +1026,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "gitkraken"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/GitKraken/GitKrakenProviderDescriptor.swift",
             },
             Self::FutureAGI => ProviderDescriptor {
                 id: self,
@@ -1118,7 +1033,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "futureagi"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/FutureAGI/FutureAGIProviderDescriptor.swift",
             },
             Self::DevPass => ProviderDescriptor {
                 id: self,
@@ -1126,7 +1040,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "devpass"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/DevPass/DevPassProviderDescriptor.swift",
             },
             Self::AtlasCloud => ProviderDescriptor {
                 id: self,
@@ -1134,7 +1047,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "atlascloud"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/AtlasCloud/AtlasCloudProviderDescriptor.swift",
             },
             Self::Vercel => ProviderDescriptor {
                 id: self,
@@ -1142,7 +1054,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "vercel"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Vercel/VercelProviderDescriptor.swift",
             },
             Self::LLMMan => ProviderDescriptor {
                 id: self,
@@ -1150,7 +1061,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "llmman"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/LLMMan/LLMManProviderDescriptor.swift",
             },
             Self::XKiro => ProviderDescriptor {
                 id: self,
@@ -1158,7 +1068,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "xkiro"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/XKiro/XKiroProviderDescriptor.swift",
             },
             Self::MuseAI => ProviderDescriptor {
                 id: self,
@@ -1166,7 +1075,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "museai"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/MuseAI/MuseAIProviderDescriptor.swift",
             },
             Self::LithosAI => ProviderDescriptor {
                 id: self,
@@ -1174,7 +1082,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "lithosai"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/LithosAI/LithosAIProviderDescriptor.swift",
             },
             Self::WorkBuddy => ProviderDescriptor {
                 id: self,
@@ -1182,7 +1089,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "workbuddy"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/WorkBuddy/WorkBuddyProviderDescriptor.swift",
             },
             Self::Tavily => ProviderDescriptor {
                 id: self,
@@ -1190,7 +1096,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "tavily"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Tavily/TavilyProviderDescriptor.swift",
             },
             Self::Linkup => ProviderDescriptor {
                 id: self,
@@ -1198,7 +1103,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "linkup"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Linkup/LinkupProviderDescriptor.swift",
             },
             Self::TinyApi => ProviderDescriptor {
                 id: self,
@@ -1206,7 +1110,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "tinyapi"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/TinyApi/TinyApiProviderDescriptor.swift",
             },
             Self::Exa => ProviderDescriptor {
                 id: self,
@@ -1214,7 +1117,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "exa"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Exa/ExaProviderDescriptor.swift",
             },
             Self::Cosmic => ProviderDescriptor {
                 id: self,
@@ -1222,7 +1124,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "cosmic"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Cosmic/CosmicProviderDescriptor.swift",
             },
             Self::Aerostack => ProviderDescriptor {
                 id: self,
@@ -1230,7 +1131,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "aerostack"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Aerostack/AerostackProviderDescriptor.swift",
             },
             Self::SailResearch => ProviderDescriptor {
                 id: self,
@@ -1238,7 +1138,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "sailresearch"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/SailResearch/SailResearchProviderDescriptor.swift",
             },
             Self::Sofya => ProviderDescriptor {
                 id: self,
@@ -1246,7 +1145,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "sofya"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Sofya/SofyaProviderDescriptor.swift",
             },
             Self::Fal => ProviderDescriptor {
                 id: self,
@@ -1254,7 +1152,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "fal"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Fal/FalProviderDescriptor.swift",
             },
             Self::Flora => ProviderDescriptor {
                 id: self,
@@ -1262,7 +1159,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "flora"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Flora/FloraProviderDescriptor.swift",
             },
             Self::Parallel => ProviderDescriptor {
                 id: self,
@@ -1270,7 +1166,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "parallel"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/Parallel/ParallelProviderDescriptor.swift",
             },
             Self::ClaudePlatform => ProviderDescriptor {
                 id: self,
@@ -1278,7 +1173,6 @@ impl ProviderId {
                 status: CoverageStatus::Planned,
                 enabled: cfg!(feature = "claudeplatform"),
                 reason: "Adapter port pending.",
-                upstream_source: "Sources/CodexBarCore/Providers/ClaudePlatform/ClaudePlatformProviderDescriptor.swift",
             },
             Self::Munito => ProviderDescriptor {
                 id: self,
@@ -1286,7 +1180,6 @@ impl ProviderId {
                 status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "munito"),
                 reason: "",
-                upstream_source: "Sources/CodexBarCore/Providers/Munito/MunitoProviderDescriptor.swift",
             },
         }
     }
@@ -1321,7 +1214,6 @@ pub struct ProviderDescriptor {
     pub status: CoverageStatus,
     pub enabled: bool,
     pub reason: &'static str,
-    pub upstream_source: &'static str,
 }
 pub fn provider_catalog() -> Vec<ProviderDescriptor> {
     ProviderId::ALL.iter().map(|id| id.descriptor()).collect()
