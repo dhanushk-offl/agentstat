@@ -1,7 +1,9 @@
 mod admin;
+mod antigravity;
 mod claude;
 mod codex;
 mod common;
+mod cursor;
 mod custom;
 mod declarative;
 mod opencode;
@@ -74,6 +76,8 @@ pub(crate) async fn fetch(client: &Client, request: &FetchRequest) -> Result<Usa
         ProviderId::Claude => claude::fetch(client, request).await,
         ProviderId::OpenAI => admin::fetch(client, request).await,
         ProviderId::OpenCode => opencode::fetch(client, request).await,
+        ProviderId::Cursor => cursor::fetch(client, request).await,
+        ProviderId::Antigravity => antigravity::fetch(client, request).await,
         _ => {
             if let Some(spec) = declarative::spec(request.provider) {
                 declarative::fetch(client, request, spec).await
@@ -82,6 +86,19 @@ pub(crate) async fn fetch(client: &Client, request: &FetchRequest) -> Result<Usa
             }
         }
     }
+}
+
+#[cfg(all(feature = "local-probes", unix))]
+pub(crate) fn parse_antigravity_probe(
+    r: &FetchRequest,
+    body: &serde_json::Value,
+) -> Result<UsageSnapshot> {
+    antigravity::parse(r, body, Source::LocalProbe)
+}
+
+#[cfg(feature = "local-files")]
+pub(crate) async fn fetch_remote_cursor(c: &Client, r: &FetchRequest) -> Result<UsageSnapshot> {
+    cursor::fetch(c, r).await
 }
 
 #[cfg(feature = "local-files")]

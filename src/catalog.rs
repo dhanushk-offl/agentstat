@@ -477,9 +477,9 @@ impl ProviderId {
             Self::Cursor => ProviderDescriptor {
                 id: self,
                 name: "Cursor",
-                status: CoverageStatus::Planned,
+                status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "cursor"),
-                reason: "Adapter port pending.",
+                reason: "",
             },
             Self::OpenCode => ProviderDescriptor {
                 id: self,
@@ -540,9 +540,9 @@ impl ProviderId {
             Self::Antigravity => ProviderDescriptor {
                 id: self,
                 name: "Antigravity",
-                status: CoverageStatus::Planned,
+                status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "antigravity"),
-                reason: "Adapter port pending.",
+                reason: "",
             },
             Self::Copilot => ProviderDescriptor {
                 id: self,

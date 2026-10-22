@@ -1,5 +1,127 @@
 #![cfg(feature = "local-files")]
-use agentstat::{local::CredentialLocation, *};
+#[cfg(any(feature = "codex", feature = "claude", feature = "cursor"))]
+use agentstat::local::CredentialLocation;
+#[cfg(any(
+    feature = "codex",
+    feature = "claude",
+    feature = "cursor",
+    all(
+        feature = "local-probes",
+        unix,
+        any(feature = "coderabbit", feature = "antigravity")
+    )
+))]
+use agentstat::*;
+
+#[cfg(feature = "cursor")]
+#[tokio::test]
+async fn cursor_cli_credentials_are_opt_in_redacted_and_never_modified() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("auth.json");
+    let bytes = br#"{"accessToken":"private","refreshToken":"refresh-private"}"#;
+    std::fs::write(&path, bytes).unwrap();
+    let location = CredentialLocation::Directory(directory.path().into());
+    assert!(matches!(
+        Client::builder()
+            .build()
+            .unwrap()
+            .load_local_credentials(ProviderId::Cursor, location.clone())
+            .await,
+        Err(AgentStatError::LocalAccessDisabled)
+    ));
+    let client = Client::builder().allow_local_files(true).build().unwrap();
+    let request = client
+        .load_local_credentials(ProviderId::Cursor, location.clone())
+        .await
+        .unwrap();
+    assert!(matches!(request.credentials, Credentials::Bearer(_)));
+    assert!(!format!("{request:?}").contains("private"));
+    assert_eq!(std::fs::read(&path).unwrap(), bytes);
+    std::fs::write(&path, br#"{"apiKey":"private"}"#).unwrap();
+    assert!(matches!(
+        client
+            .load_local_credentials(ProviderId::Cursor, location)
+            .await,
+        Err(AgentStatError::InvalidCredentials(ProviderId::Cursor))
+    ));
+}
+
+#[cfg(all(feature = "local-probes", feature = "antigravity", unix))]
+mod antigravity_probe {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    fn executable(dir: &std::path::Path, output: &str) -> std::path::PathBuf {
+        let path = dir.join("agy");
+        let script = format!(
+            "#!/bin/sh\n[ \"$#\" = 6 ] || exit 2\n[ \"$1\" = --print ] && [ \"$2\" = /usage ] && [ \"$3\" = --output-format ] && [ \"$4\" = json ] && [ \"$5\" = --log-file ] && [ \"$6\" = /dev/null ] || exit 3\n[ \"$AGY_CLI_DISABLE_AUTO_UPDATE\" = true ] || exit 4\n[ \"$NO_COLOR\" = 1 ] || exit 5\ncat <<'OUTPUT'\n{output}\nOUTPUT\n"
+        );
+        std::fs::write(&path, script).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        path
+    }
+
+    #[tokio::test]
+    async fn structured_usage_probe_requires_opt_in_and_uses_fixed_read_only_arguments() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = executable(
+            dir.path(),
+            r#"{"command":{"data":{"groups":[{"name":"Gemini Models","buckets":[{"id":"gemini-weekly","window":"weekly","remaining_fraction":0.6,"reset_time":"2026-10-29T00:00:00Z"},{"id":"gemini-5h","window":"5h","remaining_fraction":0.9}]}]}}}"#,
+        );
+        let request = FetchRequest::new(ProviderId::Antigravity, Credentials::None)
+            .source(Source::LocalProbe);
+        assert!(matches!(
+            Client::builder()
+                .build()
+                .unwrap()
+                .fetch(request.clone())
+                .await,
+            Err(AgentStatError::LocalAccessDisabled)
+        ));
+        let snapshot = Client::builder()
+            .allow_local_probes(true)
+            .probe_executable(ProviderId::Antigravity, path)
+            .build()
+            .unwrap()
+            .fetch(request)
+            .await
+            .unwrap();
+        assert_eq!(snapshot.source, Source::LocalProbe);
+        assert_eq!(snapshot.credential_source, CredentialSource::LocalProbe);
+        assert_eq!(snapshot.windows.len(), 2);
+        assert_eq!(snapshot.windows[0].duration_seconds, Some(604800));
+        assert_eq!(snapshot.windows[0].utilization_percent, Some(40.0));
+        assert_eq!(snapshot.windows[0].model.as_deref(), Some("Gemini Models"));
+        assert_eq!(
+            snapshot.windows[0].resets_at.unwrap().to_rfc3339(),
+            "2026-10-29T00:00:00+00:00"
+        );
+    }
+
+    #[tokio::test]
+    async fn agent_generated_text_and_unknown_probe_schemas_are_rejected() {
+        for body in [
+            r#"{"result":"You have 50% remaining"}"#,
+            r#"{"command":{"data":{"groups":[]}}}"#,
+            r#"{"command":{"data":{"groups":[{"buckets":[{"remaining_fraction":-1}]}]}}}"#,
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            let path = executable(dir.path(), body);
+            let err = Client::builder()
+                .allow_local_probes(true)
+                .probe_executable(ProviderId::Antigravity, path)
+                .build()
+                .unwrap()
+                .fetch(
+                    FetchRequest::new(ProviderId::Antigravity, Credentials::None)
+                        .source(Source::LocalProbe),
+                )
+                .await
+                .unwrap_err();
+            assert!(matches!(err, AgentStatError::InvalidResponse(_)));
+        }
+    }
+}
 #[cfg(feature = "codex")]
 #[tokio::test]
 async fn local_credential_reads_require_opt_in_and_preserve_files() {

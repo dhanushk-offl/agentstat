@@ -7,7 +7,9 @@ use serde_json::Value;
     feature = "claude",
     feature = "synthetic",
     feature = "openai",
-    feature = "opencode"
+    feature = "opencode",
+    feature = "cursor",
+    feature = "antigravity"
 ))]
 use serde_json::json;
 use std::collections::{HashMap, VecDeque};
@@ -129,6 +131,290 @@ fn config(v: &Value) -> ProviderConfig {
         }
     } else {
         ProviderConfig::Default
+    }
+}
+
+#[cfg(feature = "cursor")]
+#[tokio::test]
+async fn cursor_cli_preserves_vendor_percentages_and_exact_money_separately() {
+    let (base, server) = server(vec![Reply::json(json!({
+        "billingCycleStart": "1790812800000", "billingCycleEnd": "1793491200000",
+        "planUsage": {"totalPercentUsed": 10, "apiPercentUsed": 120,
+            "totalSpend": "1500.125", "limit": "2000", "remaining": "499.875"},
+        "spendLimitUsage": {"totalSpend": "12.345", "limitType": "user",
+            "individualLimit": 0, "individualUsed": "12.345", "individualRemaining": 0,
+            "pooledLimit": 100000}
+    }))])
+    .await;
+    let snapshot = builder(&base, ProviderId::Cursor)
+        .build()
+        .unwrap()
+        .fetch(FetchRequest::new(
+            ProviderId::Cursor,
+            Credentials::bearer("private"),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(snapshot.source, Source::OAuth);
+    let total = &snapshot.windows[0];
+    assert_eq!(total.utilization_percent, Some(10.0));
+    assert_eq!(total.limit, QuotaLimit::Unknown);
+    assert_eq!(total.duration_seconds, None); // Billing periods are not assumed weekly/monthly.
+    assert_eq!(total.resets_at.unwrap().timestamp_millis(), 1793491200000);
+    assert_eq!(snapshot.windows[1].utilization_percent, Some(120.0));
+    let allowance = snapshot
+        .windows
+        .iter()
+        .find(|w| w.id == "plan-allowance")
+        .unwrap();
+    assert_eq!(allowance.used.as_ref().unwrap().as_str(), "15.00125");
+    assert_eq!(allowance.remaining.as_ref().unwrap().as_str(), "4.99875");
+    let spend = snapshot
+        .windows
+        .iter()
+        .find(|w| w.id == "on-demand-individual")
+        .unwrap();
+    assert_eq!(spend.limit, QuotaLimit::Known(Decimal::from(0)));
+    assert_eq!(spend.utilization_percent, None);
+    assert_eq!(snapshot.spend[0].amount.as_str(), "0.12345");
+    let requests = server.await.unwrap();
+    assert_eq!(requests.len(), 1);
+    assert!(requests[0].contains("connect-protocol-version: 1"));
+    assert!(requests[0].ends_with("{}"));
+}
+
+#[cfg(feature = "cursor")]
+#[tokio::test]
+async fn cursor_cookie_uses_dashboard_and_keeps_missing_limits_unknown() {
+    let (base, server) = server(vec![Reply::json(json!({
+        "membershipType": "pro", "billingCycleEnd": "2026-11-01T00:00:00Z",
+        "individualUsage": {"plan": {"enabled":true, "autoPercentUsed":0,
+            "used": 100, "limit": null},
+            "onDemand": {"enabled":true,"used":75,"limit":null,"remaining":null}},
+        "teamUsage": {"onDemand": {"used":999999,"limit":999999}}
+    }))])
+    .await;
+    let snapshot = builder(&base, ProviderId::Cursor)
+        .build()
+        .unwrap()
+        .fetch(FetchRequest::new(
+            ProviderId::Cursor,
+            Credentials::cookie("WorkosCursorSessionToken=private"),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(snapshot.source, Source::Web);
+    assert_eq!(snapshot.plan.as_deref(), Some("pro"));
+    assert_eq!(snapshot.windows[0].utilization_percent, Some(0.0));
+    assert!(
+        snapshot
+            .windows
+            .iter()
+            .all(|w| w.limit == QuotaLimit::Unknown)
+    );
+    assert_eq!(snapshot.spend[0].amount.as_str(), "0.75");
+    let requests = server.await.unwrap();
+    assert!(requests[0].starts_with("GET /api/usage-summary "));
+    assert!(requests[0].contains("cookie: WorkosCursorSessionToken=private"));
+    assert!(!requests[0].contains("authorization:"));
+}
+
+#[cfg(feature = "cursor")]
+#[tokio::test]
+async fn cursor_rejects_empty_usage_and_warns_on_malformed_optional_amounts() {
+    for body in [
+        json!({}),
+        json!({"individualUsage":{"plan":{"totalPercentUsed":null}}}),
+    ] {
+        let (base, server) = server(vec![Reply::json(body)]).await;
+        assert!(matches!(
+            builder(&base, ProviderId::Cursor)
+                .build()
+                .unwrap()
+                .fetch(FetchRequest::new(
+                    ProviderId::Cursor,
+                    Credentials::cookie("session=private")
+                ))
+                .await,
+            Err(AgentStatError::InvalidResponse(_))
+        ));
+        server.await.unwrap();
+    }
+    let (base, server) = server(vec![Reply::json(json!({
+        "planUsage":{"totalPercentUsed":0,"totalSpend":-1,"limit":100},
+        "billingCycleEnd":"invalid"
+    }))])
+    .await;
+    let snapshot = builder(&base, ProviderId::Cursor)
+        .build()
+        .unwrap()
+        .fetch(FetchRequest::new(
+            ProviderId::Cursor,
+            Credentials::bearer("private"),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(snapshot.windows.len(), 1);
+    assert_eq!(snapshot.windows[0].resets_at, None);
+    assert!(snapshot.warnings.contains(&Warning::MalformedOptionalData));
+    server.await.unwrap();
+}
+
+#[cfg(feature = "cursor")]
+#[tokio::test]
+async fn cursor_keeps_overages_and_negative_remaining_allowance() {
+    let (base, server) = server(vec![Reply::json(json!({"planUsage": {
+        "totalSpend":2500, "limit":2000, "remaining":-500
+    }}))])
+    .await;
+    let snapshot = builder(&base, ProviderId::Cursor)
+        .build()
+        .unwrap()
+        .fetch(FetchRequest::new(
+            ProviderId::Cursor,
+            Credentials::bearer("private"),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(
+        snapshot.windows[0].remaining.as_ref().unwrap().as_str(),
+        "-5"
+    );
+    assert_eq!(snapshot.windows[0].utilization_percent, Some(125.0));
+    server.await.unwrap();
+}
+
+#[cfg(all(feature = "cursor", feature = "local-files"))]
+#[tokio::test]
+async fn cursor_local_cli_token_is_used_by_the_public_fetch_api() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        dir.path().join("auth.json"),
+        r#"{"accessToken":"local-secret"}"#,
+    )
+    .unwrap();
+    let (base, server) = server(vec![Reply::json(
+        json!({"planUsage":{"totalPercentUsed":15}}),
+    )])
+    .await;
+    let client = builder(&base, ProviderId::Cursor)
+        .allow_local_files(true)
+        .build()
+        .unwrap();
+    let request = client
+        .load_local_credentials(
+            ProviderId::Cursor,
+            agentstat::local::CredentialLocation::Directory(dir.path().into()),
+        )
+        .await
+        .unwrap();
+    let snapshot = client.fetch(request).await.unwrap();
+    assert_eq!(snapshot.credential_source, CredentialSource::LocalFile);
+    assert_eq!(snapshot.windows[0].utilization_percent, Some(15.0));
+    assert!(
+        !serde_json::to_string(&snapshot)
+            .unwrap()
+            .contains("local-secret")
+    );
+    assert!(server.await.unwrap()[0].contains("authorization: Bearer local-secret"));
+}
+
+#[cfg(feature = "antigravity")]
+#[tokio::test]
+async fn antigravity_reports_group_windows_without_inventing_token_allowances() {
+    let (base, server) = server(vec![Reply::json(json!({"groups":[
+        {"displayName":"Gemini Models", "buckets":[
+            {"bucketId":"gemini-5h","remainingFraction":0.75,"resetTime":"2026-10-23T01:00:00Z"},
+            {"bucketId":"gemini-weekly","remainingFraction":0,"remainingAmount":"0"},
+            {"bucketId":"disabled-5h"},
+            {"bucketId":"malformed-weekly","remainingFraction":1.5}
+        ]}
+    ]}))])
+    .await;
+    let snapshot = builder(&base, ProviderId::Antigravity)
+        .build()
+        .unwrap()
+        .fetch(
+            FetchRequest::new(ProviderId::Antigravity, Credentials::bearer("private")).config(
+                ProviderConfig::Antigravity {
+                    project_id: "project-a".into(),
+                },
+            ),
+        )
+        .await
+        .unwrap();
+    assert_eq!(snapshot.windows.len(), 2);
+    assert_eq!(snapshot.windows[0].model.as_deref(), Some("Gemini Models"));
+    assert_eq!(snapshot.windows[0].duration_seconds, Some(18000));
+    assert_eq!(snapshot.windows[1].duration_seconds, Some(604800));
+    assert_eq!(snapshot.windows[0].utilization_percent, Some(25.0));
+    assert_eq!(snapshot.windows[1].utilization_percent, Some(100.0));
+    assert!(
+        snapshot
+            .windows
+            .iter()
+            .all(|w| w.used.is_none() && w.limit == QuotaLimit::Unknown)
+    );
+    assert!(snapshot.warnings.contains(&Warning::IncompleteData));
+    assert!(snapshot.warnings.contains(&Warning::MalformedOptionalData));
+    let requests = server.await.unwrap();
+    assert!(requests[0].contains("user-agent: antigravity"));
+    assert!(requests[0].ends_with("{\"project\":\"project-a\"}"));
+}
+
+#[cfg(feature = "antigravity")]
+#[tokio::test]
+async fn antigravity_rejects_empty_duplicate_and_availability_only_data() {
+    for body in [
+        json!({}),
+        json!({"groups": []}),
+        json!({"models":{"gemini":{}}}),
+        json!({"buckets":[{"bucketId":"duplicate","remainingFraction":1},
+            {"bucketId":"duplicate","remainingFraction":0.5}]}),
+    ] {
+        let (base, server) = server(vec![Reply::json(body)]).await;
+        assert!(matches!(
+            builder(&base, ProviderId::Antigravity)
+                .build()
+                .unwrap()
+                .fetch(FetchRequest::new(
+                    ProviderId::Antigravity,
+                    Credentials::bearer("private")
+                ))
+                .await,
+            Err(AgentStatError::InvalidResponse(_))
+        ));
+        server.await.unwrap();
+    }
+}
+
+#[cfg(all(feature = "cursor", feature = "antigravity"))]
+#[tokio::test]
+async fn cursor_and_antigravity_do_not_retry_or_refresh_on_http_errors() {
+    for provider in [ProviderId::Cursor, ProviderId::Antigravity] {
+        for status in [401, 403, 429, 302, 500] {
+            let (base, server) = server(vec![Reply {
+                status,
+                body: "private".into(),
+                headers: vec![],
+            }])
+            .await;
+            let error = builder(&base, provider)
+                .build()
+                .unwrap()
+                .fetch(FetchRequest::new(provider, Credentials::bearer("private")))
+                .await
+                .unwrap_err();
+            assert!(!format!("{error:?}").contains("private"));
+            assert!(matches!(
+                (status, error),
+                (401, AgentStatError::Authentication)
+                    | (403, AgentStatError::PermissionDenied)
+                    | (429, AgentStatError::RateLimited { .. })
+                    | (302 | 500, AgentStatError::Http { .. })
+            ));
+            assert_eq!(server.await.unwrap().len(), 1);
+        }
     }
 }
 #[tokio::test]

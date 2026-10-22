@@ -6,11 +6,16 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
     if !client.local_probes {
         return Err(AgentStatError::LocalAccessDisabled);
     }
-    if r.provider != ProviderId::CodeRabbit
+    if !matches!(r.provider, ProviderId::CodeRabbit | ProviderId::Antigravity)
         || !matches!(r.source, Source::Auto | Source::LocalProbe)
         || !matches!(r.credentials, Credentials::None)
     {
         return Err(AgentStatError::UnsupportedSource(r.provider));
+    }
+    if !matches!(r.config, ProviderConfig::Default) {
+        return Err(AgentStatError::Configuration(
+            "local usage probes require default provider configuration",
+        ));
     }
     #[cfg(not(unix))]
     {
@@ -24,10 +29,29 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
             .probe_executables
             .get(&r.provider)
             .cloned()
-            .unwrap_or_else(|| "coderabbit".into());
+            .unwrap_or_else(|| {
+                if r.provider == ProviderId::Antigravity {
+                    "agy".into()
+                } else {
+                    "coderabbit".into()
+                }
+            });
         let mut command = tokio::process::Command::new(path);
+        if r.provider == ProviderId::Antigravity {
+            command
+                .args([
+                    "--print",
+                    "/usage",
+                    "--output-format",
+                    "json",
+                    "--log-file",
+                    "/dev/null",
+                ])
+                .env("AGY_CLI_DISABLE_AUTO_UPDATE", "true");
+        } else {
+            command.arg("usage");
+        }
         command
-            .arg("usage")
             .env("NO_COLOR", "1")
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
@@ -53,7 +77,14 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
             }
             let text = String::from_utf8(out)
                 .map_err(|_| AgentStatError::InvalidResponse("usage probe output is not UTF-8"))?;
-            parse(r, &text)
+            if r.provider == ProviderId::Antigravity {
+                let body = serde_json::from_str(&text).map_err(|_| {
+                    AgentStatError::InvalidResponse("expected Antigravity usage JSON")
+                })?;
+                crate::providers::parse_antigravity_probe(r, &body)
+            } else {
+                parse(r, &text)
+            }
         };
         let result = tokio::time::timeout(std::time::Duration::from_secs(15), operation)
             .await

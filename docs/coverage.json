@@ -58,9 +58,14 @@
     {
       "id": "cursor",
       "name": "Cursor",
-      "status": "planned",
-      "reason": "Adapter port pending.",
-      "source_platforms": []
+      "status": "implemented",
+      "reason": "",
+      "source_platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "data": "CLI OAuth GetCurrentPeriodUsage or dashboard session cookie usage-summary: provider percentages, exact USD-equivalent plan allowance, on-demand spend and limits, billing reset. Opt-in CLI auth.json loading; no IDE database or keychain reads."
     },
     {
       "id": "opencode",
@@ -134,9 +139,14 @@
     {
       "id": "antigravity",
       "name": "Antigravity",
-      "status": "planned",
-      "reason": "Adapter port pending.",
-      "source_platforms": []
+      "status": "implemented",
+      "reason": "",
+      "source_platforms": [
+        "linux",
+        "macos",
+        "windows"
+      ],
+      "data": "OAuth quota summary groups with five-hour/weekly usage and resets. Optional Unix agy --print /usage JSON probe using existing CLI login, with auto-update disabled; no model generation or token refresh by agentstat."
     },
     {
       "id": "copilot",

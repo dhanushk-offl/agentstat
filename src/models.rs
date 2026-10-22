@@ -32,6 +32,9 @@ pub enum ProviderConfig {
     Gemini {
         project_id: String,
     },
+    Antigravity {
+        project_id: String,
+    },
     Fireworks {
         account_id: String,
     },

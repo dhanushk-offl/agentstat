@@ -767,5 +767,69 @@
     },
     "windows": 3,
     "percent": 25
+  },
+  {
+    "provider": "cursor",
+    "method": "POST",
+    "path": "/aiserver.v1.DashboardService/GetCurrentPeriodUsage",
+    "source": "oauth",
+    "body": {
+      "billingCycleStart": "1790812800000",
+      "billingCycleEnd": "1793491200000",
+      "planUsage": {
+        "totalSpend": 1250,
+        "limit": 2000,
+        "remaining": 750,
+        "totalPercentUsed": 12.5,
+        "autoPercentUsed": 10,
+        "apiPercentUsed": 20
+      }
+    },
+    "windows": 4,
+    "percent": 12.5
+  },
+  {
+    "provider": "antigravity",
+    "method": "POST",
+    "path": "/v1internal:retrieveUserQuotaSummary",
+    "source": "oauth",
+    "body": {
+      "groups": [
+        {
+          "displayName": "Gemini Models",
+          "buckets": [
+            {
+              "bucketId": "gemini-5h",
+              "window": "5h",
+              "remainingFraction": 0.75,
+              "resetTime": "2026-10-23T01:00:00Z"
+            },
+            {
+              "bucketId": "gemini-weekly",
+              "window": "weekly",
+              "remainingFraction": 0.4,
+              "resetTime": "2026-10-29T01:00:00Z"
+            }
+          ]
+        },
+        {
+          "displayName": "Claude and GPT models",
+          "buckets": [
+            {
+              "bucketId": "3p-5h",
+              "window": "5h",
+              "remainingFraction": 0.9
+            },
+            {
+              "bucketId": "3p-weekly",
+              "window": "weekly",
+              "remainingFraction": 0.6
+            }
+          ]
+        }
+      ]
+    },
+    "windows": 4,
+    "percent": 25
   }
 ]

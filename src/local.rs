@@ -22,6 +22,9 @@ impl Client {
         }
         let path = match location {
             CredentialLocation::Directory(p) => credential_path(provider, &p)?,
+            CredentialLocation::Native if provider == ProviderId::Cursor => {
+                credential_path(provider, &cursor_directory()?)?
+            }
             CredentialLocation::Native => {
                 let (variable, fallback) = match provider {
                     ProviderId::Codex => ("CODEX_HOME", ".codex"),
@@ -66,6 +69,7 @@ impl Client {
                 }
                 (auth["accessToken"].as_str(), None)
             }
+            ProviderId::Cursor => (data["accessToken"].as_str(), None),
             _ => return Err(AgentStatError::UnsupportedSource(provider)),
         };
         let token = token
@@ -81,7 +85,34 @@ fn credential_path(provider: ProviderId, home: &Path) -> Result<PathBuf> {
     match provider {
         ProviderId::Codex => Ok(home.join("auth.json")),
         ProviderId::Claude => Ok(home.join(".credentials.json")),
+        ProviderId::Cursor => Ok(home.join("auth.json")),
         _ => Err(AgentStatError::UnsupportedSource(provider)),
+    }
+}
+
+fn cursor_directory() -> Result<PathBuf> {
+    let home = || {
+        std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
+            .filter(|v| !v.is_empty())
+            .map(PathBuf::from)
+            .ok_or(AgentStatError::LocalRead)
+    };
+    if cfg!(windows) {
+        let root = std::env::var_os("APPDATA")
+            .filter(|v| !v.is_empty())
+            .map(PathBuf::from)
+            .map(Ok)
+            .unwrap_or_else(|| home().map(|p| p.join("AppData/Roaming")))?;
+        Ok(root.join("Cursor"))
+    } else if cfg!(target_os = "macos") {
+        Ok(home()?.join(".cursor"))
+    } else {
+        let root = std::env::var_os("XDG_CONFIG_HOME")
+            .filter(|v| !v.is_empty())
+            .map(PathBuf::from)
+            .map(Ok)
+            .unwrap_or_else(|| home().map(|p| p.join(".config")))?;
+        Ok(root.join("cursor"))
     }
 }
 pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnapshot> {
@@ -111,9 +142,11 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
     request.scope.workspace_id = r.scope.workspace_id.clone();
     request.config = r.config.clone();
     request.include_optional = r.include_optional;
+    request.deadline = r.deadline;
     let mut result = match r.provider {
         ProviderId::Codex => crate::providers::fetch_remote_codex(client, &request).await,
         ProviderId::Claude => crate::providers::fetch_remote_claude(client, &request).await,
+        ProviderId::Cursor => crate::providers::fetch_remote_cursor(client, &request).await,
         _ => Err(AgentStatError::UnsupportedSource(r.provider)),
     }?;
     result.credential_source = CredentialSource::LocalFile;

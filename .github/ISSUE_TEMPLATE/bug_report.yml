@@ -1,0 +1,36 @@
+name: Bug report
+description: Report incorrect usage data, parsing failures, or other crate bugs.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remove tokens, cookies, account identifiers, and private payloads before posting.
+        For vulnerabilities or credential exposure, follow [the security policy](https://github.com/dhanushk-offl/agentstat/blob/main/SECURITY.md).
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Crate version or commit, operating system, Cargo features, provider, and credential type. Include the CLI version for probes.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide minimal code or commands using placeholders for secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the typed error or sanitized output. Do not attach credential files.
+    validations:
+      required: true

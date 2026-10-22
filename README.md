@@ -1,190 +1,285 @@
-# agentstat
+<p align="center">
+  <img src="docs/media/logo.png" width="240" alt="agentstat logo">
+</p>
 
-A Rust library for fetching current AI account usage, quota limits, reset times,
-credit balances, and provider-reported spend. No tray, UI, daemon, or polling loop.
+<h1 align="center">agentstat</h1>
 
-**Status: initial 0.1 implementation.** There are 38 remote provider adapters and
-one opt-in local usage adapter. The catalog tracks 106 provider IDs;
-63 integrations remain planned and four are excluded by the read-only policy.
-See [provider coverage](docs/providers.md) for the exact data surfaces and
-[the machine-readable manifest](docs/coverage.json) for integration status.
+<p align="center">AI account usage, quotas, balances, and reset times for Rust applications.</p>
 
-## Use from another Rust project
+<p align="center">
+  <a href="https://github.com/dhanushk-offl/agentstat/actions/workflows/ci.yml"><img src="https://github.com/dhanushk-offl/agentstat/actions/workflows/ci.yml/badge.svg" alt="Rust CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="docs/development.md"><img src="https://img.shields.io/badge/Rust-stable-orange?logo=rust" alt="Rust stable"></a>
+  <a href="#currently-supported"><img src="https://img.shields.io/badge/providers-41_supported-brightgreen" alt="41 supported providers"></a>
+</p>
 
-Until published, add the local crate:
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#currently-supported">Supported providers</a> ·
+  <a href="#coming-soon">Coming soon</a> ·
+  <a href="docs/usage.md">Usage guide</a> ·
+  <a href="CONTRIBUTING.md">Contribute</a>
+</p>
+
+Fetch provider-reported data through one async API and use it in your own CLI,
+dashboard, or application. agentstat is a library: your application decides when
+to fetch, where to store results, and how to display them.
+
+- Quota windows, utilization, limits, and reset times when the provider reports them.
+- Exact decimal balances and spend, with currencies and credit units kept separate.
+- Typed errors and batch fetching with bounded concurrency.
+- Caller-supplied credentials, with explicit opt-in for local files and CLI probes.
+
+**Early release: `0.1.0`.** The catalog tracks **41 implemented**, **61 planned**,
+and **4 out-of-scope** providers. Implemented adapters have synthetic request and
+normalization fixtures; live account compatibility still needs verification.
+HTTP adapters target Linux, macOS, and Windows. Local CLI probes support Unix.
+
+## Quick start
+
+Until a crates.io release is available, use a local checkout:
 
 ```toml
 [dependencies]
 agentstat = { path = "../agentstat" }
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["macros", "rt"] }
 ```
+
+Fetch Codex usage with an existing OAuth access token supplied by your application:
 
 ```rust
 use agentstat::{Client, Credentials, FetchRequest, ProviderId};
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let token = std::env::var("AGENTSTAT_TOKEN")?;
     let client = Client::builder().build()?;
-    let snapshot = client.fetch(FetchRequest::new(
-        ProviderId::Codex,
-        Credentials::bearer("existing-access-token"),
-    )).await?;
+    let request = FetchRequest::new(ProviderId::Codex, Credentials::bearer(token));
+    let usage = client.fetch(request).await?;
 
-    for window in snapshot.windows {
-        println!("{}: {:?}% used; resets {:?}",
-            window.id, window.utilization_percent, window.resets_at);
+    for window in usage.windows {
+        if let Some(percent) = window.utilization_percent {
+            println!("{}: {percent:.1}% used", window.id);
+        }
+        if let Some(reset) = window.resets_at {
+            println!("  Resets: {reset}");
+        }
     }
     Ok(())
 }
 ```
 
-Default features enable Codex and Claude. Enable another provider by its stable ID,
-for example `features = ["copilot", "gemini", "openrouter"]`, or use
-`features = ["all-providers"]`. `default-features = false` allows a smaller chosen
-provider set. Planned providers still return an explicit unsupported error when
-their Cargo feature is enabled; feature presence is not a support claim.
-
-The library requires a Tokio runtime. It makes one fetch only when called. Reuse
-`Client` to reuse its connection pool. `fetch_many` returns one `Result` per input
-in input order and defaults to four concurrent fetches. Calling applications own
-scheduling, storage, caching, and rendering.
-
-## Credentials and account scope
-
-Supply a bearer token, API key, or full Cookie header. These are separate credential
-variants. Codex/Claude subscription APIs need their existing OAuth access tokens;
-ordinary inference API keys do not grant subscription quota access. Use
-`Credentials::api_key` for OpenAI organization costs and Claude Admin API costs.
-The crate never logs in, renews tokens, extracts browser credentials, or writes
-credential files. Expired credentials return an error for the caller to handle.
-
-To read existing Codex or Claude Code credential files, enable `local-files` and
-explicitly opt in:
-
-```rust
-use agentstat::{Client, ProviderId, local::CredentialLocation};
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::builder().allow_local_files(true).build()?;
-    let request = client.load_local_credentials(
-        ProviderId::Codex, CredentialLocation::Native,
-    ).await?;
-    let snapshot = client.fetch(request).await?;
-    println!("{} quota windows", snapshot.windows.len());
-    Ok(())
-}
-```
-
-Native Codex resolution respects `CODEX_HOME`, otherwise uses `~/.codex/auth.json`.
-Claude respects `CLAUDE_CONFIG_DIR`, otherwise uses `~/.claude/.credentials.json`.
-On Windows, native home lookup uses `USERPROFILE`. Explicit directory selection
-stays isolated. File reads are bounded to 64 KiB. macOS Keychain credentials are
-not read; pass a token explicitly if the CLI stores it there.
-
-Codex workspace routing uses `AccountScope.account_id`. Claude web usage needs
-`ProviderConfig::Claude { organization_id }` plus `Credentials::cookie`.
-OpenCode uses `AccountScope.workspace_id` (`wrk_…` or `org_…`) and a caller-supplied
-`__Host-console_session` Cookie header. Without an explicit workspace, discovery
-requires exactly one available workspace.
-Other scoped APIs use typed configuration, such as `ProviderConfig::Cosmic` or
-`ProviderConfig::Exa`. Unsupported account routing is rejected rather than ignored.
-A fetch never falls back to another account, credential, or source.
-
-CodeRabbit is available with `coderabbit` and `local-probes`, plus
-`Client::builder().allow_local_probes(true)`. Pass `Credentials::None` and
-`Source::LocalProbe`. The only command executed is `coderabbit usage`, without a
-shell or login operation. This source currently supports Unix; Windows returns
-`UnsupportedPlatform`. Output is bounded to 128 KiB and the dedicated process
-group is killed on timeout/cancellation. The third-party executable owns its
-internal behavior; agentstat does not invoke its credential-repair commands.
-
-## OpenCode usage
-
-Enable the `opencode` Cargo feature, then supply an existing Console session cookie:
+Codex and Claude are enabled by default. Select other integrations by their
+**feature ID** in the table below:
 
 ```toml
-agentstat = { path = "../agentstat", features = ["opencode"] }
+agentstat = { path = "../agentstat", default-features = false, features = ["cursor", "local-files"] }
 ```
 
-```rust
-use agentstat::{AccountScope, Client, Credentials, FetchRequest, ProviderId};
+`all-providers` enables every catalog feature; planned integrations still return
+an unsupported error. Reuse `Client` for connection pooling. `fetch_many` returns
+one result per request in input order, with four concurrent fetches by default.
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let cookie = std::env::var("OPENCODE_COOKIE")?;
-    let request = FetchRequest::new(ProviderId::OpenCode, Credentials::cookie(cookie))
-        .scope(AccountScope {
-            workspace_id: Some("wrk_your_workspace".into()),
-            ..Default::default()
-        });
-    let snapshot = Client::builder().build()?.fetch(request).await?;
-    println!("{} quota windows", snapshot.windows.len());
-    Ok(())
-}
-```
+## Try your real account
 
-Subscription accounts return five-hour, weekly, and monthly meters when reported.
-Amounts in those meters represent USD-equivalent quota consumption, not billed
-spend. Confirmed pay-as-you-go accounts return provider-reported spend over the
-last 30 days and an available prepaid balance when reported. A missing quota is
-never treated as zero or silently replaced with spend for a subscribed account.
-This adapter uses the Console JSON API; legacy workspace-page sessions are not
-supported. The separate `opencodego` provider entry remains planned.
+From this repository, after signing into the corresponding CLI:
 
-## Data semantics
+| Account | Live command | Credentials used |
+| --- | --- | --- |
+| Codex | `cargo run --features local-files --example real_usage -- codex` | Existing local OAuth login |
+| Claude Code | `cargo run --features local-files --example real_usage -- claude` | Existing local OAuth credential file |
+| Cursor / `agent` | `cargo run --features cursor,local-files --example real_usage -- cursor` | Existing CLI `auth.json` |
+| Antigravity / `agy` | `cargo run --features antigravity,local-probes --example real_usage -- agy` | Installed CLI login; Unix only |
+| OpenCode | `cargo run --features opencode --example real_usage -- opencode` | Console cookie supplied in `OPENCODE_COOKIE` |
 
-- `windows` contains the reported usage windows, including model-specific windows.
-  Each has optional used/remaining counts, a unit, utilization, duration, and reset.
-- Limits distinguish `Known`, `Unknown`, and `Unlimited`. Missing data stays missing.
-  Percent-only APIs do not become invented token allowances.
-- Five-hour and weekly utilization are quota windows, not active-work hours.
-  Local hourly activity and transcript-based cost estimates are outside this release.
-- Money uses exact `Decimal` values serialized as strings. Currencies and provider
-  credit units stay separate. Legitimate quota overages are preserved.
-- `source` identifies API/OAuth/web/file/probe delivery; `credential_source` records
-  whether credentials came from the caller or opt-in local access.
-- `fetched_at` is UTC observation time. Results are never substituted from a cache.
-- Optional Codex reset-credit inventory is enabled by `include_optional(true)`.
-  Its failure becomes a warning and preserves the successful primary reading.
+The examples fetch live data and return an error if the fetch fails. They never
+substitute demonstration values. OpenCode needs a Console cookie rather than its
+CLI provider API key. Some CLI logins use OS credential stores that agentstat
+does not read. See the [usage guide](docs/usage.md) for cookie setup, native file
+paths, account selection, direct token access, and platform restrictions.
 
-HTTP sources support Linux, macOS, and Windows. Platform-specific local restrictions
-are documented in the coverage table. Internal/private provider APIs can change;
-a 0.1 adapter has fixture verification, not a guarantee of live-account availability.
+## Currently supported
 
-## Transport and errors
+**41 providers**, with 40 remote adapters and two optional local probes
+(Antigravity supports both paths). Each row describes the data implemented today;
+not every provider exposes hourly or weekly limits.
 
-Default fetch deadline: 30 seconds. Default response limit: 2 MiB. No automatic
-retries, redirects, token refresh, or background activity. Errors distinguish
-authentication, permission, rate limits with `Retry-After`, HTTP status, malformed
-data, transport failure, timeout, build features, and unavailable sources. Remote
-response bodies and credential values are omitted from errors and debug output.
+| Provider | Feature ID | Available data |
+| --- | --- | --- |
+| Codex | `codex` | Five-hour, weekly, and additional quotas; credits and resets |
+| Claude | `claude` | Subscription quotas, model windows, extra usage; Admin costs |
+| Cursor | `cursor` | CLI or dashboard usage, plan allowances, on-demand spend and resets |
+| Antigravity | `antigravity` | Grouped five-hour/weekly quotas and resets; optional `agy` probe |
+| OpenCode | `opencode` | Console subscription quotas; confirmed PAYG spend and prepaid balance |
+| OpenAI | `openai` | Organization costs through the Admin API |
+| ClinePass | `clinepass` | Five-hour, weekly, and monthly quotas |
+| Gemini app | `gemini` | Model quota buckets using an existing bearer token |
+| Copilot | `copilot` | Monthly quota snapshots and reported unlimited allowances |
+| z.ai / GLM | `zai` | Token, time, and credit quotas |
+| Moonshot / Kimi Open Platform | `moonshot` | Available, cash, and voucher balances |
+| Langdock | `langdock` | Session and weekly quotas using a supplied cookie |
+| Ollama | `ollama` | Included quota and purchased balance |
+| Synthetic | `synthetic` | Quota arrays; five-hour, weekly, and hourly search windows |
+| OpenRouter | `openrouter` | Key quota; daily, weekly, monthly, and lifetime spend |
+| ElevenLabs | `elevenlabs` | Character and voice-slot quotas |
+| Warp | `warp` | Request quota |
+| DeepSeek | `deepseek` | Balances by currency |
+| Codebuff | `codebuff` | Credit quota and available balance |
+| Venice | `venice` | USD and DIEM balances |
+| Poe | `poe` | Points balance |
+| ClawRouter | `clawrouter` | Monthly budget quota and reported spend |
+| ZenMux | `zenmux` | Five-hour and weekly quotas |
+| xAI | `xai` | Prepaid balance |
+| Nous Portal | `nous` | Subscription quota and balances |
+| CodeRabbit | `coderabbit` | Review count and plan through an opt-in Unix CLI probe |
+| GitKraken AI | `gitkraken` | Personal and organization quotas |
+| DevPass | `devpass` | Key, plan, and weekly premium quotas |
+| Atlas Cloud | `atlascloud` | Available balance |
+| Vercel AI Gateway | `vercel` | Available balance and lifetime spend |
+| xKiro | `xkiro` | Daily free-token quota |
+| Tavily | `tavily` | Plan, key, and PAYG quotas |
+| Linkup | `linkup` | Available balance |
+| Exa | `exa` | Month-to-date spend |
+| Cosmic AI | `cosmic` | Numeric input and output quotas |
+| Aerostack | `aerostack` | Monthly token quota |
+| Sail Research | `sailresearch` | Reported 30-day spend and available balance |
+| Sofya | `sofya` | Credit, plan-credit, and purchased-credit balances |
+| fal | `fal` | Available balance |
+| FLORA | `flora` | Available balance and monthly spend |
+| Munito | `munito` | Admin daily/monthly spend and limits |
 
-`http_client_builder` allows proxy/TLS configuration; agentstat always disables
-redirects on the resulting reqwest client. `endpoint_override` explicitly trusts
-an alternative origin for one provider. Overrides require HTTPS or loopback HTTP,
-without embedded credentials, fragments, or query parameters. Provider gateway
-configuration is also an explicit trust decision.
+For endpoint details, authentication restrictions, and omitted enrichments, see
+[full provider coverage](docs/providers.md). The
+[coverage manifest](docs/coverage.json) records the status of every catalog entry.
 
-For custom networking, implement `HttpExecutor` and set `http_executor`. Executors
-receive sensitive HTTP requests and must preserve the no-redirect/no-retry and
-cancellation contracts. The library checks returned status and body size; a custom
-executor owns its network buffering policy. The default executor bounds streaming
-response reads.
+## Coming soon
 
-## Examples and validation
+**61 integrations are planned.** They have catalog IDs and Cargo features, but no
+working fetch adapter yet. This is a backlog, with no promised release order or
+dates. Contributions are welcome.
+
+<details>
+<summary>View all planned providers</summary>
+
+| Provider | Planned feature ID |
+| --- | --- |
+| OpenCode Go | `opencodego` |
+| Alibaba Coding Plan | `alibaba` |
+| Alibaba Token Plan | `alibabatokenplan` |
+| Qwen Cloud | `qwencloud` |
+| Droid | `factory` |
+| Fireworks | `fireworks` |
+| Devin | `devin` |
+| MiniMax | `minimax` |
+| Manus | `manus` |
+| Kimi | `kimi` |
+| Kilo | `kilo` |
+| Kiro | `kiro` |
+| Vertex AI | `vertexai` |
+| Augment | `augment` |
+| JetBrains AI | `jetbrains` |
+| Amp | `amp` |
+| T3 Chat | `t3chat` |
+| Windsurf | `windsurf` |
+| Zed | `zed` |
+| Perplexity | `perplexity` |
+| Xiaomi MiMo | `mimo` |
+| Sakana AI | `sakana` |
+| Abacus AI | `abacus` |
+| Mistral | `mistral` |
+| DeepInfra | `deepinfra` |
+| Command Code | `commandcode` |
+| Qoder | `qoder` |
+| StepFun | `stepfun` |
+| AWS Bedrock | `bedrock` |
+| Grok | `grok` |
+| Groq | `groq` |
+| LLM Proxy | `llmproxy` |
+| LiteLLM | `litellm` |
+| Bifrost | `bifrost` |
+| Aixy | `aixy` |
+| Deepgram | `deepgram` |
+| Chutes | `chutes` |
+| Neuralwatt | `neuralwatt` |
+| Helmcode | `helmcode` |
+| LongCat | `longcat` |
+| sub2api | `sub2api` |
+| Wayfinder | `wayfinder` |
+| ai& | `aiand` |
+| ZoomMate | `zoommate` |
+| X API | `xapi` |
+| Notion AI | `notion` |
+| IBM Bob | `ibmbob` |
+| Replicate | `replicate` |
+| Hugging Face | `huggingface` |
+| Raycast | `raycast` |
+| v0 | `v0` |
+| TypeSafe | `typesafe` |
+| Charm Hyper | `hyper` |
+| Future AGI | `futureagi` |
+| llmman | `llmman` |
+| Muse (muse.ai) | `museai` |
+| LithosAI | `lithosai` |
+| WorkBuddy | `workbuddy` |
+| TinyApi | `tinyapi` |
+| Parallel | `parallel` |
+| Claude Platform | `claudeplatform` |
+
+</details>
+
+### Outside the current scope
+
+These entries are excluded from the current implementation rather than scheduled
+for release:
+
+| Provider | Feature ID | Reason |
+| --- | --- | --- |
+| Azure OpenAI | `azureopenai` | The identified access probe requires inference. |
+| Doubao | `doubao` | The identified validation path generates a chat completion. |
+| Muse Code | `muse` | The identified authentication path creates an API key. |
+| Pi | `pi` | Local transcript scanning and estimated cost history are outside this crate. |
+
+## Data and credentials
+
+Quota windows describe allowance consumption, not hours actively spent coding.
+Missing values stay missing; limits distinguish `Known`, `Unknown`, and
+`Unlimited`. Monetary values use exact decimals serialized as strings. Quota
+allowances and billed spend are separate concepts.
+
+Pass a bearer token, API key, or full Cookie header as the provider requires.
+The direct adapters do not log in, renew tokens, extract browser credentials, or
+write credential files. Local file reads and probes require both a Cargo feature
+and a runtime opt-in. An installed CLI owns its authentication and runtime behavior.
+
+Fetches have a 30-second deadline and a 2 MiB HTTP response limit by default.
+There are no automatic retries, redirects, or background polling. Errors omit
+remote response bodies and credential values. Private provider APIs can change;
+check the returned data against your provider's usage page.
+
+## Documentation and community
+
+| Resource | What you will find |
+| --- | --- |
+| [Usage guide](docs/usage.md) | Credentials, scopes, live examples, and transport options |
+| [Provider coverage](docs/providers.md) | Data surfaces and restrictions for every provider |
+| [Development guide](docs/development.md) | Architecture, feature checks, and packaging |
+| [Contributing](CONTRIBUTING.md) | Bug reports, provider adapters, and pull requests |
+| [Code of conduct](CODE_OF_CONDUCT.md) | Community expectations and reporting concerns |
+| [Security policy](SECURITY.md) | Reporting vulnerabilities and credential exposure |
+
+Run the local checks:
 
 ```sh
-cargo run --example fetch -- codex
-cargo run --features local-files --example local_credentials
+cargo fmt --check
 cargo test --all-features
 cargo test --no-default-features
 cargo clippy --all-features --all-targets -- -D warnings
 python3 scripts/check_coverage.py
 ```
 
-The explicit-token example reads `AGENTSTAT_TOKEN` in the example application.
-Do not put a token on the command line. The regular tests use synthetic fixtures
-and in-memory HTTP, requiring no accounts, sockets, or network. Socket-based
-reqwest smoke tests are explicitly run in CI. See [development notes](docs/development.md)
-for feature checks, source maintenance, packaging, and live validation boundaries.
+The regular tests use synthetic fixtures and in-memory HTTP, with no live accounts
+required. CI also runs socket smoke tests on Linux, macOS, and Windows.
+
+## License
+
+[MIT](LICENSE) © 2026 agentstat contributors.

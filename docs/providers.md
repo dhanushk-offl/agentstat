@@ -9,7 +9,7 @@ The catalog tracks implemented, planned, and unsupported integrations. Implement
 | `azureopenai` | unsupported | Only an inference-based access probe has been identified; no compatible read-only quota endpoint is available. |
 | `claude` | implemented | OAuth or explicit-organization manual cookie quotas, scoped weekly windows, extra usage; Admin API organization cost report. No PTY, keychain, browser extraction, or cloud grant inventory. |
 | `clinepass` | implemented | API five-hour, weekly, and monthly percentage quotas. |
-| `cursor` | planned | Adapter port pending. |
+| `cursor` | implemented | CLI OAuth GetCurrentPeriodUsage or dashboard session cookie usage-summary: provider percentages, exact USD-equivalent plan allowance, on-demand spend and limits, billing reset. Opt-in CLI auth.json loading; no IDE database or keychain reads. |
 | `opencode` | implemented | Console session cookie: five-hour, weekly, optional monthly USD-equivalent quota meters and resets. Confirmed PAYG accounts: reported 30-day spend and optional prepaid balance. Explicit workspace selection; discovery requires exactly one workspace. No browser extraction or legacy server-function fallback. |
 | `opencodego` | planned | Adapter port pending. |
 | `alibaba` | planned | Adapter port pending. |
@@ -18,7 +18,7 @@ The catalog tracks implemented, planned, and unsupported integrations. Implement
 | `factory` | planned | Adapter port pending. |
 | `fireworks` | planned | Adapter port pending. |
 | `gemini` | implemented | Existing bearer token → retrieveUserQuota model buckets; optional explicit project ID. No token refresh or project discovery. |
-| `antigravity` | planned | Adapter port pending. |
+| `antigravity` | implemented | OAuth quota summary groups with five-hour/weekly usage and resets. Optional Unix agy --print /usage JSON probe using existing CLI login, with auto-update disabled; no model generation or token refresh by agentstat. |
 | `copilot` | implemented | Existing GitHub OAuth token → monthly quota snapshots; preserves explicit unlimited allowances. No device login or enterprise host discovery. |
 | `devin` | planned | Adapter port pending. |
 | `zai` | implemented | Personal quota API: token/time/credit windows. No team routing or model-usage enrichment. |

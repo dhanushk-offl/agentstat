@@ -1,0 +1,28 @@
+name: Provider request
+description: Request a read-only usage integration or an additional data surface.
+title: "[Provider]: "
+body:
+  - type: input
+    id: provider
+    attributes:
+      label: Provider
+      description: Name and existing catalog ID, if present.
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Requested data
+      description: Which quota windows, limits, resets, balances, or spend are needed?
+    validations:
+      required: true
+  - type: textarea
+    id: interface
+    attributes:
+      label: Available read-only interface
+      description: Link public documentation or describe an observed endpoint or usage command. Include no credentials or private responses.
+  - type: textarea
+    id: authentication
+    attributes:
+      label: Authentication and platform
+      description: Describe the credential type and operating system. Do not paste the credential itself.
