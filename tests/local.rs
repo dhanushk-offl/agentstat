@@ -279,9 +279,23 @@ mod probes {
                     _ => tokio::time::sleep(std::time::Duration::from_millis(10)).await,
                 }
             }
+            // SIGKILL is delivered asynchronously. On macOS, a terminated child
+            // can also remain visible to kill(pid, 0) while it is a zombie.
             #[cfg(not(target_os = "linux"))]
-            assert!(nix::sys::signal::kill(nix::unistd::Pid::from_raw(pid), None).is_err());
-            #[cfg(target_os = "linux")]
+            for _ in 0..100 {
+                let output = std::process::Command::new("ps")
+                    .args(["-o", "stat=", "-p", &pid.to_string()])
+                    .output()
+                    .unwrap();
+                let state = String::from_utf8_lossy(&output.stdout);
+                if !output.status.success()
+                    || state.trim().is_empty()
+                    || state.trim().starts_with('Z')
+                {
+                    return;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+            }
             panic!("probe descendant is still running");
         }
     }
