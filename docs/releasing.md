@@ -64,7 +64,7 @@ and an active publication is not cancelled by a later tag.
 | Tag validation | Match the package name/version, checked-out tag commit, and main ancestry |
 | Shared CI | Tests on Linux/macOS/Windows, formatting, Clippy, documentation, verified packaging, provider feature checks, coverage checks, release guard tests |
 | Publish | Require the secret, run a publish dry run, then publish with locked dependencies and all features |
-| Archive | Retain the generated crate as a workflow artifact for 30 days |
+| Archive | Download the exact published `.crate` archive from crates.io |
 | GitHub Release | Generate notes and attach the archive; use the prerelease flag when appropriate |
 
 There is no manual approval step in the workflows. Pushing a valid release tag
@@ -87,12 +87,21 @@ or use `gh run list --workflow release.yml` and `gh run watch <run-id>`.
 - **Upload timeout or uncertain publication:** check crates.io before retrying.
   A failed command can occur after an upload was accepted. An existing version
   is not silently skipped or overwritten by this workflow.
-- **Only GitHub Release creation failed:** rerun the failed job, not every job.
-  The separate job downloads the retained archive without invoking Cargo publish.
-  If a release already exists, it uploads or replaces the archive on that release.
-- **Archive upload failed after publication, or the artifact expired:** recover
-  the published archive from crates.io and attach it using `gh release create`
-  or `gh release upload`. Do not rerun the publishing job for an existing version.
+- **Publication succeeded but a later release step failed:** run the manual
+  recovery workflow for the existing tag. It downloads the published archive
+  from crates.io and creates the GitHub Release, or replaces its attached archive
+  if the release already exists. It does not run checks or publish again:
+
+  ```sh
+  gh workflow run release.yml --ref main -f tag=v0.1.0
+  gh run list --workflow release.yml --limit 5
+  gh run watch <run-id> --exit-status
+  gh release view v0.1.0
+  ```
+
+  Use the correct existing tag in place of `v0.1.0`. The updated workflow must
+  be present on `main` before starting this recovery run. Never retry
+  `cargo publish` for a version already listed on crates.io.
 
 ## Use the published crate
 

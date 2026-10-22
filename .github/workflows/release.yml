@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing published tag to complete its GitHub Release without republishing
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -25,23 +31,26 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Match the tag to Cargo.toml and require a main commit
         id: metadata
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: python scripts/validate_release.py --tag "$RELEASE_TAG"
 
   checks:
     name: Release checks
     needs: validate
+    if: ${{ github.event_name == 'push' }}
     uses: ./.github/workflows/ci.yml
 
   publish:
     name: Publish to crates.io
     needs: [validate, checks]
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -63,26 +72,30 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish --registry crates-io --locked --all-features
-      - name: Preserve the published crate archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: crate-${{ needs.validate.outputs.tag }}
-          path: target/package/agentstat-${{ needs.validate.outputs.version }}.crate
-          if-no-files-found: error
-          retention-days: 30
 
   github-release:
     name: Create GitHub Release
     needs: [validate, publish]
+    if: ${{ always() && needs.validate.result == 'success' && (github.event_name == 'workflow_dispatch' || needs.publish.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: crate-${{ needs.validate.outputs.tag }}
-          path: release-artifacts
+      - name: Download the archive published to crates.io
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-artifacts
+          archive="release-artifacts/agentstat-${RELEASE_VERSION}.crate"
+          curl --fail --location --silent --show-error \
+            --retry 12 --retry-all-errors --retry-delay 5 \
+            --connect-timeout 10 --max-time 30 \
+            --output "$archive" \
+            "https://static.crates.io/crates/agentstat/agentstat-${RELEASE_VERSION}.crate"
+          test -s "$archive"
+          tar -tzf "$archive" > /dev/null
       - name: Create release notes and attach the crate
         env:
           GH_TOKEN: ${{ github.token }}
