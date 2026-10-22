@@ -32,6 +32,7 @@ cargo clippy --all-features --all-targets -- -D warnings
 cargo doc --all-features --no-deps
 cargo package --allow-dirty --offline --no-verify
 python3 scripts/check_coverage.py
+python3 scripts/test_release.py
 ```
 
 Compile individual feature combinations with `scripts/check_features.sh`.
@@ -63,8 +64,11 @@ account access in normal CI.
 
 ## Packaging
 
-`cargo package` is local validation only; publishing to crates.io is a separate
-release action. Inspect the packaged file list and ensure the coverage manifest,
+`cargo package` is local validation only. Inspect the packaged file list and ensure the coverage manifest,
 license, and examples are included. Release incremental 0.x versions
 as more compatible providers are implemented. A future full-catalog claim requires
 resolving all planned entries, not just compiling their feature flags.
+
+The [release guide](releasing.md) describes token setup, tag validation, automatic
+crates.io publication, GitHub Releases, and recovery. CI also runs as a reusable
+workflow for release tags, so publication waits for the same checks as a PR.

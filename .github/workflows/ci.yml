@@ -1,34 +1,74 @@
 name: Rust
+
 on:
-  push:
   pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
+    name: Test (${{ matrix.os }})
+    timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - run: cargo fmt --check
-      - run: cargo test --all-features
-      - run: cargo test --no-default-features
-      - run: cargo test
-      - run: cargo test --all-features --test http -- --ignored
-      - run: cargo clippy --all-features --all-targets -- -D warnings
-      - run: cargo doc --all-features --no-deps
-      - run: cargo package --allow-dirty --no-verify
-      - run: python3 scripts/check_coverage.py
-        if: runner.os != 'Windows'
+      - run: cargo test --locked --all-features
+      - run: cargo test --locked --no-default-features
+      - run: cargo test --locked
+      - run: cargo test --locked --all-features --test http -- --ignored
+      - run: cargo clippy --locked --all-features --all-targets -- -D warnings
+      - run: cargo doc --locked --all-features --no-deps
+      - run: cargo package --locked --all-features
+      - run: python scripts/check_coverage.py
+      - run: python scripts/test_release.py
+
   individual-features:
+    name: Individual features
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - run: cargo fetch --locked
       - run: bash scripts/check_features.sh
+
+  checks:
+    name: Checks passed
+    if: ${{ always() }}
+    needs: [test, individual-features]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all checks to succeed
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+          FEATURES_RESULT: ${{ needs.individual-features.result }}
+        run: |
+          test "$TEST_RESULT" = success
+          test "$FEATURES_RESULT" = success

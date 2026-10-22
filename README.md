@@ -1,19 +1,11 @@
 <p align="center">
-  <img src="docs/media/logo.png" width="240" alt="agentstat logo">
-</p>
-
-<h1 align="center">agentstat</h1>
-
-<p align="center">AI account usage, quotas, balances, and reset times for Rust applications.</p>
-
-<p align="center">
+  <img src="docs/media/logo.png" width="220" alt="agentstat logo"><br>
+  AI account usage, quotas, balances, and reset times for Rust applications.<br><br>
   <a href="https://github.com/dhanushk-offl/agentstat/actions/workflows/ci.yml"><img src="https://github.com/dhanushk-offl/agentstat/actions/workflows/ci.yml/badge.svg" alt="Rust CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="docs/development.md"><img src="https://img.shields.io/badge/Rust-stable-orange?logo=rust" alt="Rust stable"></a>
   <a href="#currently-supported"><img src="https://img.shields.io/badge/providers-41_supported-brightgreen" alt="41 supported providers"></a>
-</p>
-
-<p align="center">
+  <a href="https://scorecard.dev/viewer/?uri=github.com/dhanushk-offl/agentstat"><img src="https://api.scorecard.dev/projects/github.com/dhanushk-offl/agentstat/badge" alt="OpenSSF Scorecard"></a><br><br>
   <a href="#quick-start">Quick start</a> ·
   <a href="#currently-supported">Supported providers</a> ·
   <a href="#coming-soon">Coming soon</a> ·
@@ -44,6 +36,9 @@ Until a crates.io release is available, use a local checkout:
 agentstat = { path = "../agentstat" }
 tokio = { version = "1", features = ["macros", "rt"] }
 ```
+
+Once `0.1.0` is published, use `agentstat = "0.1.0"` in place of the path dependency.
+Maintainers can follow the [release guide](docs/releasing.md) to publish a version.
 
 Fetch Codex usage with an existing OAuth access token supplied by your application:
 
@@ -263,9 +258,13 @@ check the returned data against your provider's usage page.
 | [Usage guide](docs/usage.md) | Credentials, scopes, live examples, and transport options |
 | [Provider coverage](docs/providers.md) | Data surfaces and restrictions for every provider |
 | [Development guide](docs/development.md) | Architecture, feature checks, and packaging |
+| [Release guide](docs/releasing.md) | Tag-triggered crates.io publishing and GitHub Releases |
 | [Contributing](CONTRIBUTING.md) | Bug reports, provider adapters, and pull requests |
 | [Code of conduct](CODE_OF_CONDUCT.md) | Community expectations and reporting concerns |
 | [Security policy](SECURITY.md) | Reporting vulnerabilities and credential exposure |
+
+Support development through [GitHub Sponsors](https://github.com/sponsors/dhanushk-offl)
+or [Buy Me a Coffee](https://www.buymeacoffee.com/itzmedhanu).
 
 Run the local checks:
 

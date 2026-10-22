@@ -5,6 +5,9 @@ edition = "2024"
 description = "Read-only AI provider usage, quota, balance, and reset data"
 license = "MIT"
 readme = "README.md"
+repository = "https://github.com/dhanushk-offl/agentstat"
+homepage = "https://github.com/dhanushk-offl/agentstat"
+documentation = "https://docs.rs/agentstat"
 keywords = ["ai", "usage", "quota", "codex", "claude"]
 categories = ["api-bindings", "asynchronous"]
 

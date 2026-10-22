@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate release tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      tag: ${{ steps.metadata.outputs.tag }}
+      prerelease: ${{ steps.metadata.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Match the tag to Cargo.toml and require a main commit
+        id: metadata
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python scripts/validate_release.py --tag "$RELEASE_TAG"
+
+  checks:
+    name: Release checks
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Publish to crates.io
+    needs: [validate, checks]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Require the publishing secret
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [ -z "$CARGO_REGISTRY_TOKEN" ]; then
+            echo '::error::Set the repository Actions secret CARGO_REGISTRY_TOKEN to a crates.io publishing token.'
+            exit 1
+          fi
+      - name: Verify publication without uploading
+        run: cargo publish --registry crates-io --locked --all-features --dry-run
+      - name: Publish the tagged version
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --registry crates-io --locked --all-features
+      - name: Preserve the published crate archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: crate-${{ needs.validate.outputs.tag }}
+          path: target/package/agentstat-${{ needs.validate.outputs.version }}.crate
+          if-no-files-found: error
+          retention-days: 30
+
+  github-release:
+    name: Create GitHub Release
+    needs: [validate, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: crate-${{ needs.validate.outputs.tag }}
+          path: release-artifacts
+      - name: Create release notes and attach the crate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          PRERELEASE: ${{ needs.validate.outputs.prerelease }}
+        run: |
+          archive="release-artifacts/agentstat-${RELEASE_VERSION}.crate"
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$archive" --clobber
+          elif [ "$PRERELEASE" = true ]; then
+            gh release create "$RELEASE_TAG" "$archive" --verify-tag --generate-notes --title "$RELEASE_TAG" --prerelease
+          else
+            gh release create "$RELEASE_TAG" "$archive" --verify-tag --generate-notes --title "$RELEASE_TAG"
+          fi
