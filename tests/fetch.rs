@@ -9,7 +9,8 @@ use serde_json::Value;
     feature = "openai",
     feature = "opencode",
     feature = "cursor",
-    feature = "antigravity"
+    feature = "antigravity",
+    feature = "codebuff"
 ))]
 use serde_json::json;
 use std::collections::{HashMap, VecDeque};
@@ -511,19 +512,27 @@ async fn all_implemented_remote_providers_have_request_and_normalization_fixture
         let prefix = format!("{method} {}", case["path"].as_str().unwrap());
         assert!(request.starts_with(&prefix), "{provider}: {request}");
         let lower = request.to_lowercase();
-        let expected_auth = match provider {
-            ProviderId::Copilot => "authorization: token test-secret",
-            ProviderId::OpenCode => "cookie: __host-console_session=test-secret",
-            ProviderId::ElevenLabs => "xi-api-key: test-secret",
-            ProviderId::Exa => "x-api-key: test-secret",
-            ProviderId::Fal => "authorization: key test-secret",
-            _ if case["credential"] == "cookie" => "cookie: sessionkey=test-secret",
-            _ => "authorization: bearer test-secret",
-        };
-        assert!(
-            lower.contains(expected_auth),
-            "{provider}: wrong auth header"
-        );
+        if provider == ProviderId::Codebuff {
+            assert!(!lower.contains("authorization:"));
+            let body: Value =
+                serde_json::from_str(request.split("\r\n\r\n").nth(1).unwrap()).unwrap();
+            assert_eq!(body["authToken"], "test-secret");
+            assert_eq!(body["fingerprintId"], "agentstat-usage");
+        } else {
+            let expected_auth = match provider {
+                ProviderId::Copilot => "authorization: token test-secret",
+                ProviderId::OpenCode => "cookie: __host-console_session=test-secret",
+                ProviderId::ElevenLabs => "xi-api-key: test-secret",
+                ProviderId::Exa => "x-api-key: test-secret",
+                ProviderId::Fal => "authorization: key test-secret",
+                _ if case["credential"] == "cookie" => "cookie: sessionkey=test-secret",
+                _ => "authorization: bearer test-secret",
+            };
+            assert!(
+                lower.contains(expected_auth),
+                "{provider}: wrong auth header"
+            );
+        }
         if provider == ProviderId::Claude {
             assert!(lower.contains("anthropic-beta: oauth-2025-04-20"))
         }
@@ -947,6 +956,67 @@ async fn admin_pagination_does_not_merge_currencies_or_replay_cursors() {
             .any(|s| s.currency == "EUR" && s.amount.as_str() == "1.25")
     );
     assert!(server.await.unwrap()[1].contains("page=page-two"));
+}
+
+#[cfg(feature = "openai")]
+#[tokio::test]
+async fn admin_rejects_missing_or_malformed_pagination_flags() {
+    for flag in [None, Some(json!("false")), Some(json!(null))] {
+        let mut response = json!({
+            "data": [{"results": [{"amount": {"value": "1", "currency": "usd"}}]}]
+        });
+        if let Some(flag) = flag {
+            response["has_more"] = flag;
+        }
+        let (base, server) = server(vec![Reply::json(response)]).await;
+        let result = builder(&base, ProviderId::OpenAI)
+            .build()
+            .unwrap()
+            .fetch(FetchRequest::new(
+                ProviderId::OpenAI,
+                Credentials::api_key("private"),
+            ))
+            .await;
+        assert!(matches!(result, Err(AgentStatError::InvalidResponse(_))));
+        assert_eq!(server.await.unwrap().len(), 1);
+    }
+}
+
+#[cfg(feature = "codebuff")]
+#[tokio::test]
+async fn codebuff_api_key_keeps_bearer_header_request() {
+    let (base, server) = server(vec![Reply::json(json!({"usage": 25, "quota": 100}))]).await;
+    let snapshot = builder(&base, ProviderId::Codebuff)
+        .build()
+        .unwrap()
+        .fetch(FetchRequest::new(
+            ProviderId::Codebuff,
+            Credentials::api_key("paid-key"),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(snapshot.windows[0].utilization_percent, Some(25.0));
+    let request = server.await.unwrap().remove(0);
+    assert!(request.contains("authorization: Bearer paid-key"));
+    let body: Value = serde_json::from_str(request.split("\r\n\r\n").nth(1).unwrap()).unwrap();
+    assert_eq!(body, json!({"fingerprintId": "agentstat-usage"}));
+}
+
+#[cfg(feature = "ollama")]
+#[tokio::test]
+async fn mismatched_typed_provider_configuration_is_rejected_before_fetch() {
+    let result = Client::builder()
+        .build()
+        .unwrap()
+        .fetch(
+            FetchRequest::new(ProviderId::Ollama, Credentials::bearer("private")).config(
+                ProviderConfig::Exa {
+                    api_key_id: "another-account".into(),
+                },
+            ),
+        )
+        .await;
+    assert!(matches!(result, Err(AgentStatError::Configuration(_))));
 }
 
 #[cfg(feature = "opencode")]

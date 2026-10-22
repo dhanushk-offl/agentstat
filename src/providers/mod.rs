@@ -60,6 +60,23 @@ pub(crate) async fn fetch(client: &Client, request: &FetchRequest) -> Result<Usa
     if !descriptor.enabled {
         return Err(AgentStatError::FeatureDisabled(request.provider));
     }
+    let config_matches_provider = match &request.config {
+        ProviderConfig::Default => true,
+        ProviderConfig::Claude { .. } => request.provider == ProviderId::Claude,
+        ProviderConfig::Gemini { .. } => request.provider == ProviderId::Gemini,
+        ProviderConfig::Antigravity { .. } => request.provider == ProviderId::Antigravity,
+        ProviderConfig::Fireworks { .. } => request.provider == ProviderId::Fireworks,
+        ProviderConfig::Exa { .. } => request.provider == ProviderId::Exa,
+        ProviderConfig::Cosmic { .. } => request.provider == ProviderId::Cosmic,
+        ProviderConfig::Flora { .. } => request.provider == ProviderId::Flora,
+        ProviderConfig::Xai { .. } => request.provider == ProviderId::Xai,
+        ProviderConfig::Gateway { .. } => declarative::spec(request.provider).is_some(),
+    };
+    if !config_matches_provider {
+        return Err(AgentStatError::Configuration(
+            "provider configuration does not match the selected provider",
+        ));
+    }
     #[cfg(feature = "local-files")]
     if request.source == Source::LocalFile {
         return crate::local::fetch(client, request).await;

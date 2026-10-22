@@ -50,6 +50,10 @@ Supply a bearer token, API key, or full Cookie header. These are separate creden
 variants. Codex/Claude subscription APIs need their existing OAuth access tokens;
 ordinary inference API keys do not grant subscription quota access. Use
 `Credentials::api_key` for OpenAI organization costs and Claude Admin API costs.
+For Codebuff, pass a CLI session token with `Credentials::bearer`; the adapter
+sends it in the usage request body as `authToken`. Pass a paid API key with
+`Credentials::api_key` to use the Bearer-header request. The crate does not
+discover Codebuff credentials locally.
 The crate never logs in, renews tokens, extracts browser credentials, or writes
 credential files. Expired credentials return an error for the caller to handle.
 

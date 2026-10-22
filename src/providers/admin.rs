@@ -92,7 +92,12 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
                     .ok_or(AgentStatError::InvalidResponse("cost amount overflow"))?;
             }
         }
-        if data["has_more"] != true {
+        let has_more = data["has_more"]
+            .as_bool()
+            .ok_or(AgentStatError::InvalidResponse(
+                "invalid cost pagination flag",
+            ))?;
+        if !has_more {
             complete = true;
             break;
         }

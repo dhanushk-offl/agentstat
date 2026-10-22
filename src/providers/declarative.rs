@@ -251,7 +251,15 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest, spec: &Spec) -> Res
         return Err(AgentStatError::InvalidCredentials(r.provider));
     }
     check_source(r, source(r))?;
-    let mut headers = auth(r, name, scheme)?;
+    // Codebuff's CLI session token belongs in the JSON request body. A paid API
+    // key retains the existing Bearer-header request shape.
+    let cli_session =
+        r.provider == ProviderId::Codebuff && matches!(r.credentials, Credentials::Bearer(_));
+    let mut headers = if cli_session {
+        reqwest::header::HeaderMap::new()
+    } else {
+        auth(r, name, scheme)?
+    };
     for (name, value) in &spec.headers {
         headers.insert(
             reqwest::header::HeaderName::from_bytes(name.as_bytes())
@@ -266,9 +274,18 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest, spec: &Spec) -> Res
     } else {
         Method::GET
     };
+    let body = if cli_session {
+        let token = r
+            .credentials
+            .value()
+            .ok_or(AgentStatError::InvalidCredentials(r.provider))?;
+        Some(serde_json::json!({"fingerprintId": "agentstat-usage", "authToken": token}))
+    } else {
+        spec.body.clone()
+    };
     let data = client
         .transport
-        .json(r.provider, method, &url, headers, spec.body.clone())
+        .json(r.provider, method, &url, headers, body)
         .await?;
     parse(r, spec, &data)
 }
