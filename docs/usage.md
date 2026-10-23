@@ -6,11 +6,11 @@ Detailed credential setup, account routing, live examples, and data behavior for
 
 ## Use from another Rust project
 
-Until published, add the local crate:
+Add the published crate to your application:
 
 ```toml
 [dependencies]
-agentstat = { path = "../agentstat" }
+agentstat = "0.1.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
@@ -170,6 +170,15 @@ cargo run --features opencode --example real_usage -- opencode
 unset OPENCODE_COOKIE
 ```
 
+In fish:
+
+```fish
+read --silent --prompt-str 'OpenCode Console cookie: ' OPENCODE_COOKIE
+set -gx OPENCODE_COOKIE $OPENCODE_COOKIE
+cargo run --features opencode --example real_usage -- opencode
+set -e OPENCODE_COOKIE
+```
+
 If you have multiple workspaces, set `OPENCODE_WORKSPACE_ID` to your `wrk_...` or
 `org_...` workspace ID before running. A single workspace is discovered
 automatically. This sample uses a Console session cookie, not an OpenCode API key
@@ -179,7 +188,7 @@ fixture coverage but has not yet been verified against a live OpenCode account.
 To use it from another Rust project:
 
 ```toml
-agentstat = { path = "../agentstat", features = ["opencode"] }
+agentstat = { version = "0.1.0", features = ["opencode"] }
 ```
 
 ```rust
@@ -253,6 +262,7 @@ response reads.
 cargo run --example fetch -- codex
 cargo run --features local-files --example local_credentials
 cargo run --features local-files --example real_usage -- codex
+cargo run --features local-files --example model_usage -- codex
 cargo test --all-features
 cargo test --no-default-features
 cargo clippy --all-features --all-targets -- -D warnings
@@ -262,6 +272,8 @@ python3 scripts/check_coverage.py
 The `real_usage` example fetches live data using your existing local Codex login
 and prints quota usage, limits, and reset times. Use `-- claude` for a local Claude
 OAuth login, or enable `opencode` and use `-- opencode` with `OPENCODE_COOKIE`.
+The `model_usage` example focuses on model-labelled quota windows; it also shows
+provider-wide windows when no model label is reported.
 It requires network access and valid credentials; it does not log in
 or refresh expired credentials. No sample values are substituted if fetching fails.
 

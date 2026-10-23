@@ -2,11 +2,15 @@
   <img src="docs/media/logo.png" width="220" alt="agentstat logo"><br>
   AI account usage, quotas, balances, and reset times for Rust applications.<br><br>
   <a href="https://github.com/dhanushk-offl/agentstat/actions/workflows/ci.yml"><img src="https://github.com/dhanushk-offl/agentstat/actions/workflows/ci.yml/badge.svg" alt="Rust CI"></a>
+  <a href="https://crates.io/crates/agentstat"><img src="https://img.shields.io/crates/v/agentstat.svg" alt="crates.io version"></a>
+  <a href="https://docs.rs/agentstat"><img src="https://docs.rs/agentstat/badge.svg" alt="docs.rs"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="docs/development.md"><img src="https://img.shields.io/badge/Rust-stable-orange?logo=rust" alt="Rust stable"></a>
-  <a href="#currently-supported"><img src="https://img.shields.io/badge/providers-41_supported-brightgreen" alt="41 supported providers"></a>
+  <a href="#currently-supported"><img src="https://img.shields.io/badge/providers-41_implemented-brightgreen" alt="41 implemented providers"></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/dhanushk-offl/agentstat"><img src="https://api.scorecard.dev/projects/github.com/dhanushk-offl/agentstat/badge" alt="OpenSSF Scorecard"></a><br><br>
   <a href="#quick-start">Quick start</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#examples">Examples</a> ·
   <a href="#currently-supported">Supported providers</a> ·
   <a href="#coming-soon">Coming soon</a> ·
   <a href="docs/usage.md">Usage guide</a> ·
@@ -24,37 +28,46 @@ to fetch, where to store results, and how to display them.
 
 **Early release: `0.1.0`.** The catalog tracks **41 implemented**, **61 planned**,
 and **4 out-of-scope** providers. Implemented adapters have synthetic request and
-normalization fixtures; live account compatibility still needs verification.
+normalization fixtures; they are not all verified against live accounts.
 HTTP adapters target Linux, macOS, and Windows. Local CLI probes support Unix.
 
 ## Quick start
 
-Until a crates.io release is available, use a local checkout:
+Add the published library to your Rust application:
+
+```sh
+cargo add agentstat@0.1.0 --features local-files
+cargo add tokio --features macros,rt-multi-thread
+```
+
+Or put the same dependencies in `Cargo.toml`:
 
 ```toml
 [dependencies]
-agentstat = { path = "../agentstat" }
-tokio = { version = "1", features = ["macros", "rt"] }
+agentstat = { version = "0.1.0", features = ["local-files"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
 
-Once `0.1.0` is published, use `agentstat = "0.1.0"` in place of the path dependency.
-Maintainers can follow the [release guide](docs/releasing.md) to publish a version.
-
-Fetch Codex usage with an existing OAuth access token supplied by your application:
+This `src/main.rs` reads your existing Codex CLI login and prints the reported
+quota windows. `local-files` is opt-in at both build time and runtime:
 
 ```rust
-use agentstat::{Client, Credentials, FetchRequest, ProviderId};
+use agentstat::{Client, ProviderId, local::CredentialLocation};
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let token = std::env::var("AGENTSTAT_TOKEN")?;
-    let client = Client::builder().build()?;
-    let request = FetchRequest::new(ProviderId::Codex, Credentials::bearer(token));
-    let usage = client.fetch(request).await?;
+    let client = Client::builder().allow_local_files(true).build()?;
+    let request = client
+        .load_local_credentials(ProviderId::Codex, CredentialLocation::Native)
+        .await?;
+    let snapshot = client.fetch(request).await?;
 
-    for window in usage.windows {
+    for window in &snapshot.windows {
+        println!("{} | model: {}",
+            window.id,
+            window.model.as_deref().unwrap_or("not specified"));
         if let Some(percent) = window.utilization_percent {
-            println!("{}: {percent:.1}% used", window.id);
+            println!("  Used: {percent:.1}%");
         }
         if let Some(reset) = window.resets_at {
             println!("  Resets: {reset}");
@@ -64,16 +77,57 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+Run it with `cargo run`. For a fuller model-window report, copy or adapt
+[the model usage example](examples/model_usage.rs). A `model` field identifies a
+provider-reported model or group; a missing field does not imply a separate
+per-model measurement. Five-hour and weekly windows are quota periods, not time
+spent coding. The provider may omit a limit, reset, or model breakdown.
+
 Codex and Claude are enabled by default. Select other integrations by their
-**feature ID** in the table below:
+**feature ID** in the table below, for example:
 
 ```toml
-agentstat = { path = "../agentstat", default-features = false, features = ["cursor", "local-files"] }
+agentstat = { version = "0.1.0", default-features = false, features = ["cursor", "local-files"] }
 ```
 
-`all-providers` enables every catalog feature; planned integrations still return
-an unsupported error. Reuse `Client` for connection pooling. `fetch_many` returns
-one result per request in input order, with four concurrent fetches by default.
+`all-providers` enables every catalog feature, including planned integrations that
+still return an unsupported error. Enable only the providers you need.
+
+## How it works
+
+```mermaid
+flowchart LR
+    A[Your Rust application] --> B[FetchRequest]
+    C[Caller credentials or opt-in local login] --> B
+    B --> D[Client validation and routing]
+    D --> E[Provider adapter]
+    E --> F[Read-only provider API or opt-in CLI probe]
+    F --> G[Normalized UsageSnapshot]
+    G --> A
+```
+
+Your application owns credentials, fetch timing, caching, and display. `Client`
+checks provider support and account scope, performs a fetch, and returns typed
+`windows`, `balances`, `spend`, and `warnings`. Reuse one `Client` for connection
+pooling. `fetch_many` keeps request order and returns one result per request, so
+one failed account does not hide another account's result.
+
+## Examples
+
+| Use case | Example | What it shows |
+| --- | --- | --- |
+| Model and quota windows from a local CLI login | [model_usage.rs](examples/model_usage.rs) | Read Codex, Claude, or Cursor credentials, then inspect model labels, utilization, limits, and resets |
+| Live usage from your available accounts | [real_usage.rs](examples/real_usage.rs) | Codex, Claude, Cursor, Antigravity, and OpenCode with their distinct credential paths |
+| Caller-supplied token | [fetch.rs](examples/fetch.rs) | Supply a token and serialize the typed snapshot as JSON |
+
+These examples use the public crate API, so their `Client` and `FetchRequest`
+code can be moved into another Rust project. The first two examples run from this
+repository with `cargo run --example ...`; `fetch.rs` needs `AGENTSTAT_TOKEN`.
+For a model-window report from your existing Codex login, run:
+
+```sh
+cargo run --features local-files --example model_usage -- codex
+```
 
 ## Try your real account
 
