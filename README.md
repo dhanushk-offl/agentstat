@@ -151,7 +151,8 @@ From this repository, after signing into the corresponding CLI:
 The examples fetch live data and return an error if the fetch fails. They never
 substitute demonstration values. OpenCode Zen/Console needs a Console cookie;
 OpenCode Go uses its API key. OpenCode CLI/local reports recorded 30-day session
-tokens and cost, not account quota or balance. Some CLI logins use OS credential stores that agentstat
+tokens and cost, not account quota or balance. Older CLI versions without JSON
+statistics provide rounded totals. Some CLI logins use OS credential stores that agentstat
 does not read. See the [usage guide](docs/usage.md) for cookie setup, native file
 paths, account selection, direct token access, and platform restrictions.
 

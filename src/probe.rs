@@ -46,7 +46,7 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
                     "coderabbit".into()
                 }
             });
-        let mut command = tokio::process::Command::new(path);
+        let mut command = tokio::process::Command::new(&path);
         if r.provider == ProviderId::Antigravity {
             command
                 .args([
@@ -73,9 +73,14 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .kill_on_drop(true);
-        command.as_std_mut().process_group(0);
+        // OpenCode may start a managed local service that must outlive `stats`.
+        // The other probes are bounded to their process group on timeout.
+        if r.provider != ProviderId::OpenCode {
+            command.as_std_mut().process_group(0);
+        }
         let mut child = command.spawn().map_err(|_| AgentStatError::Probe)?;
-        let guard = ProcessGroup(child.id().map(|id| nix::unistd::Pid::from_raw(id as i32)));
+        let guard = (r.provider != ProviderId::OpenCode)
+            .then(|| ProcessGroup(child.id().map(|id| nix::unistd::Pid::from_raw(id as i32))));
         let mut out = Vec::new();
         let max_bytes = if r.provider == ProviderId::OpenCode {
             1024 * 1024
@@ -94,6 +99,10 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
             }
             let status = child.wait().await.map_err(|_| AgentStatError::Probe)?;
             if !status.success() {
+                #[cfg(feature = "opencode-local")]
+                if r.provider == ProviderId::OpenCode {
+                    return opencode_text(&path, r).await;
+                }
                 return Err(AgentStatError::Probe);
             }
             let text = String::from_utf8(out)
@@ -127,6 +136,47 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
         drop(guard);
         result
     }
+}
+#[cfg(all(feature = "opencode-local", unix))]
+async fn opencode_text(path: &std::path::Path, r: &FetchRequest) -> Result<UsageSnapshot> {
+    use std::process::Stdio;
+    let mut command = tokio::process::Command::new(path);
+    command
+        .args(["stats", "--days", "30"])
+        .env("OPENCODE_DISABLE_AUTOUPDATE", "true")
+        .env("OPENCODE_DISABLE_PRUNE", "true")
+        .env("OPENCODE_DISABLE_MODELS_FETCH", "true")
+        .env("NO_COLOR", "1")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .kill_on_drop(true);
+    let mut child = command.spawn().map_err(|_| AgentStatError::Probe)?;
+    let mut out = Vec::new();
+    let output = child.stdout.take().ok_or(AgentStatError::Probe)?;
+    tokio::time::timeout(std::time::Duration::from_secs(25), async {
+        output
+            .take(128 * 1024 + 1)
+            .read_to_end(&mut out)
+            .await
+            .map_err(|_| AgentStatError::Probe)?;
+        if out.len() > 128 * 1024 {
+            return Err(AgentStatError::ResponseTooLarge);
+        }
+        if !child
+            .wait()
+            .await
+            .map_err(|_| AgentStatError::Probe)?
+            .success()
+        {
+            return Err(AgentStatError::Probe);
+        }
+        let text = String::from_utf8(out)
+            .map_err(|_| AgentStatError::InvalidResponse("OpenCode CLI output is not UTF-8"))?;
+        crate::opencode_local::parse_text(r, &text)
+    })
+    .await
+    .map_err(|_| AgentStatError::Timeout)?
 }
 #[cfg(unix)]
 struct ProcessGroup(Option<nix::unistd::Pid>);

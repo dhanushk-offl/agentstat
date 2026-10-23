@@ -113,6 +113,58 @@ mod opencode_cli_probe {
             .unwrap_err();
         assert!(matches!(error, AgentStatError::Configuration(_)));
     }
+
+    #[tokio::test]
+    async fn older_cli_text_report_is_used_when_json_is_unavailable() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("opencode");
+        let script = r##"#!/bin/sh
+[ "$1" = stats ] && [ "$2" = --days ] && [ "$3" = 30 ] || exit 2
+if [ "$4" = --json ]; then
+  printf 'opencode stats\nOptions: --days --models\n'
+  exit 1
+fi
+[ "$#" = 3 ] || exit 3
+cat <<'REPORT'
+┌────────────────────────────────────────┐
+│Sessions                            498 │
+│Messages                         36,626 │
+│Total Cost                       $19.10 │
+│Input                            194.7M │
+│Output                            11.1M │
+│Cache Read                      3610.3M │
+│Cache Write                           0 │
+└────────────────────────────────────────┘
+REPORT
+"##;
+        std::fs::write(&path, script).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let snapshot = Client::builder()
+            .allow_local_probes(true)
+            .probe_executable(ProviderId::OpenCode, path)
+            .build()
+            .unwrap()
+            .fetch(
+                FetchRequest::new(ProviderId::OpenCode, Credentials::None)
+                    .source(Source::LocalProbe),
+            )
+            .await
+            .unwrap();
+        assert_eq!(snapshot.source, Source::LocalProbe);
+        assert_eq!(snapshot.warnings, vec![Warning::IncompleteData]);
+        assert_eq!(snapshot.windows[0].used.as_ref().unwrap().as_str(), "498");
+        assert_eq!(snapshot.windows[1].used.as_ref().unwrap().as_str(), "36626");
+        assert_eq!(
+            snapshot.windows[2].used.as_ref().unwrap().as_str(),
+            "194700000"
+        );
+        assert_eq!(
+            snapshot.windows[4].used.as_ref().unwrap().as_str(),
+            "3610300000"
+        );
+        assert_eq!(snapshot.spend[0].amount.as_str(), "19.1");
+        assert!(snapshot.spend[0].starts_at.is_none());
+    }
 }
 
 #[cfg(feature = "cursor")]

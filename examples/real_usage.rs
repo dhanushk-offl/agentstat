@@ -98,7 +98,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(not(feature = "local-files"))]
         return Err("Enable local login loading with --features local-files".into());
     };
-    let usage = client.fetch(request).await?;
+    let usage = match client.fetch(request).await {
+        Ok(usage) => usage,
+        Err(agentstat::AgentStatError::Probe) if opencode_cli => {
+            return Err("OpenCode CLI exited unsuccessfully. Run `opencode stats --days 30` directly to see its error".into());
+        }
+        Err(error) => return Err(error.into()),
+    };
 
     println!("Provider: {provider:?}");
     println!("Source: {:?}", usage.source);

@@ -218,14 +218,17 @@ supported. OpenCode Go API keys use the separate `opencodego` adapter below.
 
 ### OpenCode CLI / local statistics
 
-The opt-in `opencode-local` feature uses the installed OpenCode CLI's structured
-`stats --days 30 --json` output. It reports local session counts, token totals,
-recorded USD cost, and per-model input/output tokens and cost. These are the
-CLI's session records across providers, not remaining OpenCode account quota or
-Zen balance. The probe currently runs on Unix and does not need a Console cookie
-or Go API key. It disables the CLI's automatic update, pruning, and model-fetch
-checks for the subprocess; OpenCode may still write its normal log or start its
-local service when the command runs.
+The opt-in `opencode-local` feature uses the installed OpenCode CLI's
+`stats --days 30` report. On newer releases it reads structured JSON and
+reports session counts, token totals, recorded USD cost, and per-model
+input/output tokens and cost. On older releases without `--json`, it reads the
+text report's rounded totals and marks the snapshot `IncompleteData`; model
+details and exact range timestamps are unavailable in that format. These are
+the CLI's session records across providers, not remaining OpenCode account
+quota or Zen balance. The probe currently runs on Unix and does not need a
+Console cookie or Go API key. It disables the CLI's automatic update, pruning,
+and model-fetch checks for the subprocess; OpenCode may still write its normal
+log or start its local service when the command runs.
 
 ```sh
 cargo run --features opencode-local --example real_usage -- opencode-cli
