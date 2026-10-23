@@ -1,14 +1,16 @@
-//! Opt-in checks against real OpenCode accounts. These never run in ordinary CI.
+//! Opt-in checks against real `OpenCode` accounts. These never run in ordinary CI.
 //! Set the credentials described in docs/development.md before running them.
 
 #[cfg(any(feature = "opencode", feature = "opencodego"))]
 use agentstat::{Client, Credentials, FetchRequest, ProviderId, Source};
+#[cfg(any(feature = "opencode", feature = "opencodego"))]
+use std::env;
 
 #[cfg(feature = "opencodego")]
 #[tokio::test]
 #[ignore = "requires OPENCODE_GO_API_KEY and a live OpenCode Go account"]
 async fn opencode_go_live_quota_windows() {
-    let key = std::env::var("OPENCODE_GO_API_KEY")
+    let key = env::var("OPENCODE_GO_API_KEY")
         .expect("set OPENCODE_GO_API_KEY before running this live test");
     assert!(!key.trim().is_empty(), "OPENCODE_GO_API_KEY is empty");
 
@@ -47,10 +49,10 @@ async fn opencode_go_live_quota_windows() {
 async fn opencode_zen_live_spend() {
     use agentstat::AccountScope;
 
-    let cookie = std::env::var("OPENCODE_COOKIE")
-        .expect("set OPENCODE_COOKIE before running this live test");
+    let cookie =
+        env::var("OPENCODE_COOKIE").expect("set OPENCODE_COOKIE before running this live test");
     assert!(!cookie.trim().is_empty(), "OPENCODE_COOKIE is empty");
-    let workspace_id = std::env::var("OPENCODE_WORKSPACE_ID")
+    let workspace_id = env::var("OPENCODE_WORKSPACE_ID")
         .ok()
         .filter(|value| !value.trim().is_empty());
 

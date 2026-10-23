@@ -1,5 +1,13 @@
-use super::common::*;
-use crate::*;
+//! Provider-specific adapters without declarative specs.
+
+use super::common::{
+    auth, check_source, credit_unit, date, decimal, finish, number, percent_window, push_balance,
+    source, text, window,
+};
+use crate::{
+    AgentStatError, Balance, Client, Credentials, FetchRequest, ProviderConfig, ProviderId,
+    QuotaLimit, Result, Source, SpendSummary, Unit, UsageSnapshot, Warning, WindowKind, transport,
+};
 use reqwest::Method;
 use serde_json::Value;
 
@@ -31,8 +39,8 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
         },
     )?;
     if r.provider == ProviderId::Copilot {
-        crate::transport::header(&mut headers, "editor-version", "vscode/1.96.2")?;
-        crate::transport::header(&mut headers, "editor-plugin-version", "copilot/1.250.0")?;
+        transport::header(&mut headers, "editor-version", "vscode/1.96.2")?;
+        transport::header(&mut headers, "editor-plugin-version", "copilot/1.250.0")?;
     }
     let data = client
         .transport

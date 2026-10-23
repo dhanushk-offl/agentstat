@@ -1,5 +1,10 @@
-use super::common::*;
-use crate::*;
+//! Antigravity usage adapter.
+
+use super::common::{auth, check_source, date, finish, number, percent_window, text};
+use crate::{
+    AgentStatError, Client, CredentialSource, Credentials, FetchRequest, ProviderConfig, Result,
+    Source, UsageSnapshot, Warning, WindowKind, transport,
+};
 use reqwest::Method;
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
@@ -21,7 +26,7 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
         }
     };
     let mut headers = auth(r, "authorization", "Bearer ")?;
-    crate::transport::header(&mut headers, "user-agent", "antigravity")?;
+    transport::header(&mut headers, "user-agent", "antigravity")?;
     let body = client
         .transport
         .json(

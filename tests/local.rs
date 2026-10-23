@@ -1,3 +1,5 @@
+//! Integration tests for agentstat local.
+
 #![cfg(feature = "local-files")]
 #[cfg(any(feature = "codex", feature = "claude", feature = "cursor"))]
 use agentstat::local::CredentialLocation;
@@ -16,19 +18,33 @@ use agentstat::local::CredentialLocation;
     )
 ))]
 use agentstat::*;
+#[cfg(any(
+    feature = "codex",
+    feature = "claude",
+    feature = "cursor",
+    all(feature = "local-probes", unix)
+))]
+use std::fs;
+#[cfg(all(feature = "local-probes", unix))]
+use std::path::{Path, PathBuf};
+#[cfg(all(feature = "local-probes", unix))]
+use std::time::Duration;
+#[cfg(all(feature = "local-probes", unix))]
+use tokio::time;
 
 #[cfg(all(feature = "opencode-local", unix))]
 mod opencode_cli_probe {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
 
-    fn executable(dir: &std::path::Path, output: &str) -> std::path::PathBuf {
+    fn executable(dir: &Path, output: &str) -> PathBuf {
         let path = dir.join("opencode");
         let script = format!(
             "#!/bin/sh\n[ \"$#\" = 4 ] && [ \"$1\" = stats ] && [ \"$2\" = --days ] && [ \"$3\" = 30 ] && [ \"$4\" = --json ] || exit 2\n[ \"$NO_COLOR\" = 1 ] || exit 3\n[ \"$OPENCODE_DISABLE_AUTOUPDATE\" = true ] && [ \"$OPENCODE_DISABLE_PRUNE\" = true ] && [ \"$OPENCODE_DISABLE_MODELS_FETCH\" = true ] || exit 4\ncat <<'OUTPUT'\n{output}\nOUTPUT\n"
         );
-        std::fs::write(&path, script).unwrap();
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        fs::write(&path, script).expect("test fixture file should be writable");
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o700))
+            .expect("test fixture file should be writable");
         path
     }
 
@@ -137,8 +153,9 @@ cat <<'REPORT'
 └────────────────────────────────────────┘
 REPORT
 "##;
-        std::fs::write(&path, script).unwrap();
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        fs::write(&path, script).expect("test fixture file should be writable");
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o700))
+            .expect("test fixture file should be writable");
         let snapshot = Client::builder()
             .allow_local_probes(true)
             .probe_executable(ProviderId::OpenCode, path)
@@ -173,7 +190,7 @@ async fn cursor_cli_credentials_are_opt_in_redacted_and_never_modified() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("auth.json");
     let bytes = br#"{"accessToken":"private","refreshToken":"refresh-private"}"#;
-    std::fs::write(&path, bytes).unwrap();
+    fs::write(&path, bytes).expect("test fixture file should be writable");
     let location = CredentialLocation::Directory(directory.path().into());
     assert!(matches!(
         Client::builder()
@@ -190,8 +207,8 @@ async fn cursor_cli_credentials_are_opt_in_redacted_and_never_modified() {
         .unwrap();
     assert!(matches!(request.credentials, Credentials::Bearer(_)));
     assert!(!format!("{request:?}").contains("private"));
-    assert_eq!(std::fs::read(&path).unwrap(), bytes);
-    std::fs::write(&path, br#"{"apiKey":"private"}"#).unwrap();
+    assert_eq!(fs::read(&path).unwrap(), bytes);
+    fs::write(&path, br#"{"apiKey":"private"}"#).expect("test fixture file should be writable");
     assert!(matches!(
         client
             .load_local_credentials(ProviderId::Cursor, location)
@@ -205,13 +222,14 @@ mod antigravity_probe {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
 
-    fn executable(dir: &std::path::Path, output: &str) -> std::path::PathBuf {
+    fn executable(dir: &Path, output: &str) -> PathBuf {
         let path = dir.join("agy");
         let script = format!(
             "#!/bin/sh\n[ \"$#\" = 6 ] || exit 2\n[ \"$1\" = --print ] && [ \"$2\" = /usage ] && [ \"$3\" = --output-format ] && [ \"$4\" = json ] && [ \"$5\" = --log-file ] && [ \"$6\" = /dev/null ] || exit 3\n[ \"$AGY_CLI_DISABLE_AUTO_UPDATE\" = true ] || exit 4\n[ \"$NO_COLOR\" = 1 ] || exit 5\ncat <<'OUTPUT'\n{output}\nOUTPUT\n"
         );
-        std::fs::write(&path, script).unwrap();
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        fs::write(&path, script).expect("test fixture file should be writable");
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o700))
+            .expect("test fixture file should be writable");
         path
     }
 
@@ -282,7 +300,7 @@ async fn local_credential_reads_require_opt_in_and_preserve_files() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("auth.json");
     let bytes = br#"{"tokens":{"access_token":"private","account_id":"account-a"}}"#;
-    std::fs::write(&path, bytes).unwrap();
+    fs::write(&path, bytes).expect("test fixture file should be writable");
     let location = CredentialLocation::Directory(directory.path().into());
     assert!(matches!(
         Client::builder()
@@ -300,7 +318,7 @@ async fn local_credential_reads_require_opt_in_and_preserve_files() {
         .await
         .unwrap();
     assert_eq!(request.scope.account_id.as_deref(), Some("account-a"));
-    assert_eq!(std::fs::read(path).unwrap(), bytes);
+    assert_eq!(fs::read(path).unwrap(), bytes);
     assert!(!format!("{request:?}").contains("private"));
 }
 #[cfg(feature = "claude")]
@@ -309,7 +327,7 @@ async fn expired_claude_credentials_are_not_refreshed() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join(".credentials.json");
     let bytes=br#"{"claudeAiOauth":{"accessToken":"private","refreshToken":"refresh-private","expiresAt":1}}"#;
-    std::fs::write(&path, bytes).unwrap();
+    fs::write(&path, bytes).expect("test fixture file should be writable");
     let client = Client::builder().allow_local_files(true).build().unwrap();
     assert!(matches!(
         client
@@ -320,7 +338,7 @@ async fn expired_claude_credentials_are_not_refreshed() {
             .await,
         Err(AgentStatError::Authentication)
     ));
-    assert_eq!(std::fs::read(path).unwrap(), bytes);
+    assert_eq!(fs::read(path).unwrap(), bytes);
 }
 #[cfg(feature = "codex")]
 #[tokio::test]
@@ -333,7 +351,7 @@ async fn malformed_oversized_and_api_only_credentials_fail_without_leaking() {
         vec![b'x'; 65537],
         b"private".to_vec(),
     ] {
-        std::fs::write(&path, bytes).unwrap();
+        fs::write(&path, bytes).expect("test fixture file should be writable");
         let err = client
             .load_local_credentials(
                 ProviderId::Codex,
@@ -348,10 +366,11 @@ async fn malformed_oversized_and_api_only_credentials_fail_without_leaking() {
 mod probes {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
-    fn executable(dir: &std::path::Path, script: &str) -> std::path::PathBuf {
+    fn executable(dir: &Path, script: &str) -> PathBuf {
         let path = dir.join("coderabbit");
-        std::fs::write(&path, script).unwrap();
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        fs::write(&path, script).expect("test fixture file should be writable");
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o700))
+            .expect("test fixture file should be writable");
         path
     }
     #[tokio::test]
@@ -413,7 +432,7 @@ mod probes {
         let client = Client::builder()
             .allow_local_probes(true)
             .probe_executable(ProviderId::CodeRabbit, path)
-            .timeout(std::time::Duration::from_millis(100))
+            .timeout(Duration::from_millis(100))
             .build()
             .unwrap();
         assert!(matches!(
@@ -422,15 +441,15 @@ mod probes {
                 .await,
             Err(AgentStatError::Timeout)
         ));
-        if let Ok(pid) = std::fs::read_to_string(&pidfile) {
+        if let Ok(pid) = fs::read_to_string(&pidfile) {
             let pid: i32 = pid.trim().parse().unwrap();
             // Linux may retain a killed grandchild as a zombie until its reaper runs.
             #[cfg(target_os = "linux")]
             for _ in 0..20 {
-                match std::fs::read_to_string(format!("/proc/{pid}/stat")) {
+                match fs::read_to_string(format!("/proc/{pid}/stat")) {
                     Err(_) => return,
                     Ok(stat) if stat.split_whitespace().nth(2) == Some("Z") => return,
-                    _ => tokio::time::sleep(std::time::Duration::from_millis(10)).await,
+                    _ => time::sleep(Duration::from_millis(10)).await,
                 }
             }
             // SIGKILL is delivered asynchronously. On macOS, a terminated child
@@ -448,7 +467,7 @@ mod probes {
                 {
                     return;
                 }
-                tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+                time::sleep(Duration::from_millis(20)).await;
             }
             panic!("probe descendant is still running");
         }

@@ -1,13 +1,21 @@
 //! Fetch real account usage using existing credentials or a read-only CLI probe.
-//! Run: cargo run --features local-files --example real_usage -- codex
-//! OpenCode: cargo run --features opencode --example real_usage -- opencode
-//! OpenCode CLI: cargo run --features opencode-local --example real_usage -- opencode-cli
+//! Run: cargo run --features local-files --example `real_usage` -- codex
+//! `OpenCode`: cargo run --features opencode --example `real_usage` -- opencode
+//! `OpenCode` CLI: cargo run --features opencode-local --example `real_usage` -- opencode-cli
+
+use std::env;
+use std::error::Error;
 
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use agentstat::{AccountScope, Client, Credentials, FetchRequest, ProviderId};
+async fn main() -> Result<(), Box<dyn Error>> {
+    #[cfg(feature = "local-files")]
+    use agentstat::local::CredentialLocation;
+    use agentstat::{
+        AccountScope, AgentStatError, Client, Credentials, FetchRequest, ProviderConfig,
+        ProviderId, Source,
+    };
 
-    let selection = std::env::args().nth(1).unwrap_or_else(|| "codex".into());
+    let selection = env::args().nth(1).unwrap_or_else(|| "codex".into());
     let opencode_cli = matches!(selection.as_str(), "opencode-cli" | "opencode-local");
     let provider = match selection.as_str() {
         "codex" => ProviderId::Codex,
@@ -41,17 +49,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if !cfg!(feature = "opencode-local") {
             return Err("Enable OpenCode CLI statistics with --features opencode-local".into());
         }
-        FetchRequest::new(provider, Credentials::None).source(agentstat::Source::LocalProbe)
+        FetchRequest::new(provider, Credentials::None).source(Source::LocalProbe)
     } else if provider == ProviderId::OpenCode {
-        let cookie = std::env::var("OPENCODE_COOKIE")
+        let cookie = env::var("OPENCODE_COOKIE")
             .ok()
             .filter(|value| !value.trim().is_empty())
             .ok_or(
                 "Set OPENCODE_COOKIE to your Console Cookie header before running this sample",
             )?;
-        let workspace_id = match std::env::var("OPENCODE_WORKSPACE_ID") {
+        let workspace_id = match env::var("OPENCODE_WORKSPACE_ID") {
             Ok(value) => Some(value),
-            Err(std::env::VarError::NotPresent) => None,
+            Err(env::VarError::NotPresent) => None,
             Err(_) => return Err("OPENCODE_WORKSPACE_ID must contain valid text".into()),
         };
         FetchRequest::new(provider, Credentials::cookie(cookie))
@@ -63,36 +71,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else if provider == ProviderId::OpenCodeGo {
         FetchRequest::new(
             provider,
-            Credentials::api_key(std::env::var("OPENCODE_GO_API_KEY")?),
+            Credentials::api_key(env::var("OPENCODE_GO_API_KEY")?),
         )
     } else if provider == ProviderId::Ollama {
-        FetchRequest::new(
-            provider,
-            Credentials::api_key(std::env::var("OLLAMA_API_KEY")?),
-        )
+        FetchRequest::new(provider, Credentials::api_key(env::var("OLLAMA_API_KEY")?))
     } else if provider == ProviderId::Antigravity {
-        if let Ok(token) = std::env::var("ANTIGRAVITY_ACCESS_TOKEN") {
+        if let Ok(token) = env::var("ANTIGRAVITY_ACCESS_TOKEN") {
             let mut request = FetchRequest::new(provider, Credentials::bearer(token));
-            if let Ok(project_id) = std::env::var("ANTIGRAVITY_PROJECT_ID") {
-                request = request.config(agentstat::ProviderConfig::Antigravity { project_id });
+            if let Ok(project_id) = env::var("ANTIGRAVITY_PROJECT_ID") {
+                request = request.config(ProviderConfig::Antigravity { project_id });
             }
             request
         } else {
             if !cfg!(feature = "local-probes") {
                 return Err("Use --features antigravity,local-probes for the agy login, or supply ANTIGRAVITY_ACCESS_TOKEN for direct HTTPS fetching".into());
             }
-            FetchRequest::new(provider, Credentials::None).source(agentstat::Source::LocalProbe)
+            FetchRequest::new(provider, Credentials::None).source(Source::LocalProbe)
         }
-    } else if provider == ProviderId::Cursor && std::env::var_os("CURSOR_COOKIE").is_some() {
-        FetchRequest::new(
-            provider,
-            Credentials::cookie(std::env::var("CURSOR_COOKIE")?),
-        )
+    } else if provider == ProviderId::Cursor && env::var_os("CURSOR_COOKIE").is_some() {
+        FetchRequest::new(provider, Credentials::cookie(env::var("CURSOR_COOKIE")?))
     } else {
         #[cfg(feature = "local-files")]
         {
             client
-                .load_local_credentials(provider, agentstat::local::CredentialLocation::Native)
+                .load_local_credentials(provider, CredentialLocation::Native)
                 .await?
         }
         #[cfg(not(feature = "local-files"))]
@@ -100,7 +102,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let usage = match client.fetch(request).await {
         Ok(usage) => usage,
-        Err(agentstat::AgentStatError::Probe) if opencode_cli => {
+        Err(AgentStatError::Probe) if opencode_cli => {
             return Err("OpenCode CLI probe failed. Check that `opencode` is on PATH, then run `opencode stats --days 30` directly to see its error".into());
         }
         Err(error) => return Err(error.into()),

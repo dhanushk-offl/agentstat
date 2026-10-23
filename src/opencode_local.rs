@@ -1,12 +1,16 @@
-//! OpenCode's `stats --json` describes local session activity, not account quota.
-use crate::*;
+//! `OpenCode`'s `stats --json` describes local session activity, not account quota.
+use crate::{
+    AgentStatError, CredentialSource, Decimal, FetchRequest, QuotaLimit, QuotaWindow, Result,
+    Source, SpendSummary, Unit, UsageSnapshot, Warning, WindowKind,
+};
 use chrono::{DateTime, Utc};
 use serde_json::Value;
+use std::collections::BTreeMap;
 
-/// Older OpenCode CLIs do not expose `stats --json`. Their text report rounds
+/// Older `OpenCode` CLIs do not expose `stats --json`. Their text report rounds
 /// token and cost values, so preserve that limitation in the snapshot.
 pub(crate) fn parse_text(request: &FetchRequest, text: &str) -> Result<UsageSnapshot> {
-    let mut fields = std::collections::BTreeMap::new();
+    let mut fields = BTreeMap::new();
     for line in text.lines() {
         let inner = line.trim().trim_matches('│').trim();
         let parts: Vec<_> = inner.split_whitespace().collect();
