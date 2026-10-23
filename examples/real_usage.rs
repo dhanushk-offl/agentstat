@@ -101,7 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let usage = match client.fetch(request).await {
         Ok(usage) => usage,
         Err(agentstat::AgentStatError::Probe) if opencode_cli => {
-            return Err("OpenCode CLI exited unsuccessfully. Run `opencode stats --days 30` directly to see its error".into());
+            return Err("OpenCode CLI probe failed. Check that `opencode` is on PATH, then run `opencode stats --days 30` directly to see its error".into());
         }
         Err(error) => return Err(error.into()),
     };
