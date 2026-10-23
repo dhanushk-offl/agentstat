@@ -62,6 +62,32 @@ and account, compare the returned windows against its usage page, and record the
 crate version, platform, and date without retaining secrets. Never require live
 account access in normal CI.
 
+OpenCode has ignored live integration tests for its two credential paths. Run each
+test only when its account and credential are available:
+
+```bash
+# Go API key: checks five-hour, weekly, and monthly percentages and reset times.
+read -r -s -p "OpenCode Go API key: " OPENCODE_GO_API_KEY; echo
+export OPENCODE_GO_API_KEY
+cargo test --locked --features opencodego \
+  --test live_opencode opencode_go_live_quota_windows -- --ignored
+unset OPENCODE_GO_API_KEY
+
+# Zen pay-as-you-go Console session cookie: checks 30-day spend.
+# Set OPENCODE_WORKSPACE_ID too when the Console account has multiple workspaces.
+read -r -s -p "OpenCode Console cookie: " OPENCODE_COOKIE; echo
+export OPENCODE_COOKIE
+cargo test --locked --features opencode \
+  --test live_opencode opencode_zen_live_spend -- --ignored
+unset OPENCODE_COOKIE OPENCODE_WORKSPACE_ID
+```
+
+Use an actual Go subscription for the first test and a Zen pay-as-you-go workspace
+for the second. The tests fail on missing credentials, fetch errors, or missing
+expected data; they do not print credentials or usage values. Compare the results
+with the OpenCode Console before treating the account path as verified. These
+tests are never part of normal CI.
+
 ## Packaging
 
 `cargo package` is local validation only. Inspect the packaged file list and ensure the coverage manifest,
