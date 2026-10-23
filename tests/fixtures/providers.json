@@ -737,6 +737,20 @@
     ]
   },
   {
+    "provider": "opencodego",
+    "path": "/zen/go/v1/usage",
+    "credential": "api_key",
+    "body": {
+      "usage": {
+        "rolling": {"status": "ok", "percent": 25, "resetsAt": "2026-10-23T03:00:00Z"},
+        "weekly": {"status": "ok", "percent": 40, "resetsAt": "2026-10-29T00:00:00Z"},
+        "monthly": {"status": "ok", "percent": 10, "resetsAt": "2026-11-01T00:00:00Z"}
+      }
+    },
+    "windows": 3,
+    "percent": 25
+  },
+  {
     "provider": "opencode",
     "path": "/console/api/go/status",
     "credential": "cookie",

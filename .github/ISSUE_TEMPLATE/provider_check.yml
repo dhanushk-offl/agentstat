@@ -1,0 +1,47 @@
+name: Provider check
+description: Share a live account check of an implemented provider.
+title: "[Provider check]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Compare agentstat with the provider's own usage page. Share observations only.
+        Never include tokens, cookies, account identifiers, or raw authenticated responses.
+  - type: input
+    id: provider
+    attributes:
+      label: Provider
+      description: Name and feature ID from the README table.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Crate version or commit
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, enabled Cargo features, credential type, date, and CLI version when relevant.
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Outcome
+      options:
+        - Matched the provider usage page
+        - Some fields differed
+        - Fetch returned an error
+    validations:
+      required: true
+  - type: textarea
+    id: observations
+    attributes:
+      label: Observations
+      description: Which windows, model labels, limits, resets, balances, or spend matched or differed? Use sanitized descriptions and include a typed error if one occurred.
+    validations:
+      required: true

@@ -10,8 +10,8 @@ The catalog tracks implemented, planned, and unsupported integrations. Implement
 | `claude` | implemented | OAuth or explicit-organization manual cookie quotas, scoped weekly windows, extra usage; Admin API organization cost report. No PTY, keychain, browser extraction, or cloud grant inventory. |
 | `clinepass` | implemented | API five-hour, weekly, and monthly percentage quotas. |
 | `cursor` | implemented | CLI OAuth GetCurrentPeriodUsage or dashboard session cookie usage-summary: provider percentages, exact USD-equivalent plan allowance, on-demand spend and limits, billing reset. Opt-in CLI auth.json loading; no IDE database or keychain reads. |
-| `opencode` | implemented | Console session cookie: five-hour, weekly, optional monthly USD-equivalent quota meters and resets. Confirmed PAYG accounts: reported 30-day spend and optional prepaid balance. Explicit workspace selection; discovery requires exactly one workspace. No browser extraction or legacy server-function fallback. |
-| `opencodego` | planned | Adapter port pending. |
+| `opencode` | implemented | Console session cookie: five-hour, weekly, optional monthly Go quota meters and resets. Confirmed Zen PAYG accounts: reported 30-day spend and optional prepaid balance. Go subscribers can request the supplemental Zen prepaid balance with `include_optional(true)`. Explicit workspace selection; discovery requires exactly one workspace. No browser extraction or legacy server-function fallback. |
+| `opencodego` | implemented | Go API key: five-hour, weekly, and monthly utilization percentages and resets from `/zen/go/v1/usage`. No workspace discovery, Zen balance, or per-model breakdown with this key. |
 | `alibaba` | planned | Adapter port pending. |
 | `alibabatokenplan` | planned | Adapter port pending. |
 | `qwencloud` | planned | Adapter port pending. |
@@ -34,7 +34,7 @@ The catalog tracks implemented, planned, and unsupported integrations. Implement
 | `amp` | planned | Adapter port pending. |
 | `t3chat` | planned | Adapter port pending. |
 | `langdock` | implemented | session quota, weekly quota. Manual Cookie header only. |
-| `ollama` | implemented | included quota, purchased balance. |
+| `ollama` | implemented | API key: current monthly included-credit quota and reset or legacy session/weekly percentages and resets, plus purchased-credit balance from `/api/balance`. No inference or stale `/api/usage` histogram. |
 | `synthetic` | implemented | API quota arrays or named five-hour, weekly, and search-hourly slots. No estimated spend. |
 | `openrouter` | implemented | key quota, lifetime spend, daily spend, weekly spend, monthly spend. |
 | `elevenlabs` | implemented | characters quota, voice-slots quota, professional-voices quota. |

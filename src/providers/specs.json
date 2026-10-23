@@ -236,42 +236,6 @@
       }
     ]
   },
-  "ollama": {
-    "url": "https://ollama.com/api/balance",
-    "windows": [
-      {
-        "id": "included",
-        "unit": {
-          "kind": "currency",
-          "name": "USD"
-        },
-        "used": {
-          "path": "/included/allowance_usd",
-          "subtract": "/included/balance_usd"
-        },
-        "limit": {
-          "path": "/included/allowance_usd"
-        },
-        "remaining": {
-          "path": "/included/balance_usd"
-        },
-        "kind": "calendar",
-        "reset": "/included/period/until"
-      }
-    ],
-    "balances": [
-      {
-        "id": "purchased",
-        "amount": {
-          "path": "/purchased/balance_usd"
-        },
-        "unit": {
-          "kind": "currency",
-          "name": "USD"
-        }
-      }
-    ]
-  },
   "elevenlabs": {
     "url": "https://api.elevenlabs.io/v1/user/subscription",
     "auth": "xi-api-key",

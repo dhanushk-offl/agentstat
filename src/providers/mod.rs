@@ -6,7 +6,9 @@ mod common;
 mod cursor;
 mod custom;
 mod declarative;
+mod ollama;
 mod opencode;
+mod opencodego;
 use crate::*;
 pub(crate) async fn fetch(client: &Client, request: &FetchRequest) -> Result<UsageSnapshot> {
     if [
@@ -93,6 +95,8 @@ pub(crate) async fn fetch(client: &Client, request: &FetchRequest) -> Result<Usa
         ProviderId::Claude => claude::fetch(client, request).await,
         ProviderId::OpenAI => admin::fetch(client, request).await,
         ProviderId::OpenCode => opencode::fetch(client, request).await,
+        ProviderId::OpenCodeGo => opencodego::fetch(client, request).await,
+        ProviderId::Ollama => ollama::fetch(client, request).await,
         ProviderId::Cursor => cursor::fetch(client, request).await,
         ProviderId::Antigravity => antigravity::fetch(client, request).await,
         _ => {

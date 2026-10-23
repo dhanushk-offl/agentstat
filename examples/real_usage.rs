@@ -9,10 +9,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let provider = match std::env::args().nth(1).as_deref().unwrap_or("codex") {
         "codex" => ProviderId::Codex,
         "claude" => ProviderId::Claude,
-        "opencode" => ProviderId::OpenCode,
+        "opencode" | "zen" => ProviderId::OpenCode,
+        "opencode-go" | "go" => ProviderId::OpenCodeGo,
+        "ollama" => ProviderId::Ollama,
         "cursor" | "agent" => ProviderId::Cursor,
         "antigravity" | "agy" => ProviderId::Antigravity,
-        _ => return Err("Usage: real_usage [codex|claude|opencode|cursor|agy]".into()),
+        _ => {
+            return Err(
+                "Usage: real_usage [codex|claude|opencode|opencode-go|ollama|cursor|agy]".into(),
+            );
+        }
     };
     if !provider.descriptor().enabled {
         return Err(format!(
@@ -39,10 +45,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Err(std::env::VarError::NotPresent) => None,
             Err(_) => return Err("OPENCODE_WORKSPACE_ID must contain valid text".into()),
         };
-        FetchRequest::new(provider, Credentials::cookie(cookie)).scope(AccountScope {
-            workspace_id,
-            ..Default::default()
-        })
+        FetchRequest::new(provider, Credentials::cookie(cookie))
+            .scope(AccountScope {
+                workspace_id,
+                ..Default::default()
+            })
+            .include_optional(true)
+    } else if provider == ProviderId::OpenCodeGo {
+        FetchRequest::new(
+            provider,
+            Credentials::api_key(std::env::var("OPENCODE_GO_API_KEY")?),
+        )
+    } else if provider == ProviderId::Ollama {
+        FetchRequest::new(
+            provider,
+            Credentials::api_key(std::env::var("OLLAMA_API_KEY")?),
+        )
     } else if provider == ProviderId::Antigravity {
         if let Ok(token) = std::env::var("ANTIGRAVITY_ACCESS_TOKEN") {
             let mut request = FetchRequest::new(provider, Credentials::bearer(token));

@@ -214,7 +214,58 @@ spend. Confirmed pay-as-you-go accounts return provider-reported spend over the
 last 30 days and an available prepaid balance when reported. A missing quota is
 never treated as zero or silently replaced with spend for a subscribed account.
 This adapter uses the Console JSON API; legacy workspace-page sessions are not
-supported. The separate `opencodego` provider entry remains planned.
+supported. OpenCode Go API keys use the separate `opencodego` adapter below.
+
+### OpenCode Go API key
+
+The current source checkout implements `ProviderId::OpenCodeGo` with the
+`opencodego` feature. Supply your Go API key, rather than a Console cookie, to
+read the five-hour, weekly, and monthly percentages and reset times from
+`GET https://opencode.ai/zen/go/v1/usage`:
+
+```rust
+use agentstat::{Client, Credentials, FetchRequest, ProviderId};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let key = std::env::var("OPENCODE_GO_API_KEY")?;
+    let request = FetchRequest::new(ProviderId::OpenCodeGo, Credentials::api_key(key));
+    let snapshot = Client::builder().build()?.fetch(request).await?;
+    for window in snapshot.windows {
+        println!("{}: {:?}% used, resets {:?}",
+            window.id, window.utilization_percent, window.resets_at);
+    }
+    Ok(())
+}
+```
+
+From this repository, run
+`cargo run --features opencodego --example real_usage -- go` after exporting
+`OPENCODE_GO_API_KEY`. The key returns quota percentages,
+not dollar balances or per-model usage. A Go subscriber who also has Zen prepaid
+credits can use the cookie-based `OpenCode` request with
+`include_optional(true)` to add the Zen balance; a failure to read that extra
+balance becomes a warning and preserves the Go quotas. API keys alone cannot
+read the Zen wallet. These additions need a release newer than `0.1.0` before
+they are available from crates.io.
+
+### Ollama Cloud
+
+Enable `ollama` and pass an Ollama Cloud API key as `Credentials::api_key` or
+`Credentials::bearer`. `GET https://ollama.com/api/balance` reports either an
+included monthly USD credit window or legacy session and weekly percentage
+windows, plus any purchased-credit balance. Reset times come from the response.
+The crate does not use `/api/usage` as a balance source or infer per-model quota.
+
+From this repository, export `OLLAMA_API_KEY` and run:
+
+```sh
+cargo run --features ollama --example real_usage -- ollama
+```
+
+Ollama recommends at most one balance request per minute per user. The legacy
+session/weekly mapping is in current source and needs a release newer than
+`0.1.0` for registry consumers.
 
 ## Data semantics
 

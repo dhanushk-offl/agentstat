@@ -80,14 +80,18 @@
       "endpoint": "https://opencode.ai/console/api/go/status",
       "method": "GET",
       "credential": "cookie",
-      "data": "Console session cookie: five-hour, weekly, optional monthly USD-equivalent quota meters and resets. Confirmed PAYG accounts: reported 30-day spend and optional prepaid balance. Explicit workspace selection; discovery requires exactly one workspace. No browser extraction or legacy server-function fallback."
+      "data": "Console session cookie: five-hour, weekly, optional monthly USD-equivalent Go quota meters and resets. Confirmed Zen PAYG accounts: reported 30-day spend and prepaid balance. Go subscribers can opt into a supplemental Zen prepaid balance. Explicit workspace selection; discovery requires exactly one workspace. No browser extraction or legacy server-function fallback."
     },
     {
       "id": "opencodego",
       "name": "OpenCode Go",
-      "status": "planned",
-      "reason": "Adapter port pending.",
-      "source_platforms": []
+      "status": "implemented",
+      "reason": "",
+      "endpoint": "https://opencode.ai/zen/go/v1/usage",
+      "method": "GET",
+      "credential": "api_key",
+      "data": "API-key-authenticated five-hour, weekly, and monthly utilization percentages and reset times. No Zen wallet balance or per-model breakdown.",
+      "source_platforms": ["linux", "macos", "windows"]
     },
     {
       "id": "alibaba",
@@ -287,7 +291,7 @@
       "endpoint": "https://ollama.com/api/balance",
       "method": "GET",
       "credential": "bearer",
-      "data": "included quota, purchased balance.",
+      "data": "Current plans: included monthly USD credit quota and reset plus purchased balance. Legacy plans: session and weekly remaining-percent quotas and resets plus purchased balance. Uses the documented balance API, not the stale usage histogram.",
       "source_platforms": [
         "linux",
         "macos",

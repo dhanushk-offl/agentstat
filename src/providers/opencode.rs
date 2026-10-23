@@ -57,6 +57,12 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
     let status = get(client, r, &headers, "/go/status").await?;
     if let Some(access) = status.get("access").filter(|v| v.is_object()) {
         parse_meters(&mut snapshot, access)?;
+        if r.include_optional {
+            match get(client, r, &headers, "/billing/status").await {
+                Ok(billing) => add_prepaid_balance(&mut snapshot, &billing),
+                Err(_) => snapshot.warnings.push(Warning::OptionalFetchFailed),
+            }
+        }
         return finish(snapshot);
     }
     // Only an explicit null establishes absent quota. Never relabel broken subscription data.
@@ -97,23 +103,30 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
         ends_at: Some(now),
     });
     if billing["billingMode"] == "prepaid" {
-        if let Some(amount) = microcents(&billing["balanceMicroCents"], true) {
-            snapshot.balances.push(Balance {
-                id: "prepaid".into(),
-                amount,
-                unit: Unit::Currency("USD".into()),
-            });
-        } else {
-            snapshot
-                .warnings
-                .push(if billing["balanceMicroCents"].is_null() {
-                    Warning::IncompleteData
-                } else {
-                    Warning::MalformedOptionalData
-                });
-        }
+        add_prepaid_balance(&mut snapshot, &billing);
     }
     finish(snapshot)
+}
+
+fn add_prepaid_balance(snapshot: &mut UsageSnapshot, billing: &Value) {
+    if billing["billingMode"] != "prepaid" {
+        return;
+    }
+    if let Some(amount) = microcents(&billing["balanceMicroCents"], true) {
+        snapshot.balances.push(Balance {
+            id: "prepaid".into(),
+            amount,
+            unit: Unit::Currency("USD".into()),
+        });
+    } else {
+        snapshot
+            .warnings
+            .push(if billing["balanceMicroCents"].is_null() {
+                Warning::IncompleteData
+            } else {
+                Warning::MalformedOptionalData
+            });
+    }
 }
 
 async fn get(client: &Client, r: &FetchRequest, headers: &HeaderMap, path: &str) -> Result<Value> {

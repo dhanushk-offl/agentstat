@@ -6,15 +6,15 @@
   <a href="https://docs.rs/agentstat"><img src="https://docs.rs/agentstat/badge.svg" alt="docs.rs"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="docs/development.md"><img src="https://img.shields.io/badge/Rust-stable-orange?logo=rust" alt="Rust stable"></a>
-  <a href="#currently-supported"><img src="https://img.shields.io/badge/providers-41_implemented-brightgreen" alt="41 implemented providers"></a>
-  <a href="https://scorecard.dev/viewer/?uri=github.com/dhanushk-offl/agentstat"><img src="https://api.scorecard.dev/projects/github.com/dhanushk-offl/agentstat/badge" alt="OpenSSF Scorecard"></a><br><br>
+  <a href="#currently-supported"><img src="https://img.shields.io/badge/providers-42_implemented-brightgreen" alt="42 implemented providers"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/dhanushk-offl/agentstat"><img src="docs/media/openssf-scorecard.svg" alt="OpenSSF Scorecard" title="View the live OpenSSF Scorecard"></a><br><br>
   <a href="#quick-start">Quick start</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#examples">Examples</a> ·
   <a href="#currently-supported">Supported providers</a> ·
   <a href="#coming-soon">Coming soon</a> ·
   <a href="docs/usage.md">Usage guide</a> ·
-  <a href="CONTRIBUTING.md">Contribute</a>
+  <a href="#contributions-wanted">Contribute</a>
 </p>
 
 Fetch provider-reported data through one async API and use it in your own CLI,
@@ -26,10 +26,13 @@ to fetch, where to store results, and how to display them.
 - Typed errors and batch fetching with bounded concurrency.
 - Caller-supplied credentials, with explicit opt-in for local files and CLI probes.
 
-**Early release: `0.1.0`.** The catalog tracks **41 implemented**, **61 planned**,
+**Early release: `0.1.0`.** The catalog tracks **42 implemented**, **60 planned**,
 and **4 out-of-scope** providers. Implemented adapters have synthetic request and
-normalization fixtures; they are not all verified against live accounts.
+normalization fixtures. [Help us validate more providers with real accounts](#contributions-wanted).
 HTTP adapters target Linux, macOS, and Windows. Local CLI probes support Unix.
+The table reflects the current source checkout. OpenCode Go, Ollama legacy quotas,
+and optional Zen balance for Go subscribers will be available on crates.io in the
+next release; use a local path dependency to try them now.
 
 ## Quick start
 
@@ -117,7 +120,7 @@ one failed account does not hide another account's result.
 | Use case | Example | What it shows |
 | --- | --- | --- |
 | Model and quota windows from a local CLI login | [model_usage.rs](examples/model_usage.rs) | Read Codex, Claude, or Cursor credentials, then inspect model labels, utilization, limits, and resets |
-| Live usage from your available accounts | [real_usage.rs](examples/real_usage.rs) | Codex, Claude, Cursor, Antigravity, and OpenCode with their distinct credential paths |
+| Live usage from your available accounts | [real_usage.rs](examples/real_usage.rs) | Codex, Claude, Cursor, Antigravity, OpenCode Go/Zen, and Ollama with their distinct credential paths |
 | Caller-supplied token | [fetch.rs](examples/fetch.rs) | Supply a token and serialize the typed snapshot as JSON |
 
 These examples use the public crate API, so their `Client` and `FetchRequest`
@@ -139,63 +142,72 @@ From this repository, after signing into the corresponding CLI:
 | Claude Code | `cargo run --features local-files --example real_usage -- claude` | Existing local OAuth credential file |
 | Cursor / `agent` | `cargo run --features cursor,local-files --example real_usage -- cursor` | Existing CLI `auth.json` |
 | Antigravity / `agy` | `cargo run --features antigravity,local-probes --example real_usage -- agy` | Installed CLI login; Unix only |
-| OpenCode | `cargo run --features opencode --example real_usage -- opencode` | Console cookie supplied in `OPENCODE_COOKIE` |
+| OpenCode Zen / Console | `cargo run --features opencode --example real_usage -- opencode` | Console cookie supplied in `OPENCODE_COOKIE` |
+| OpenCode Go | `cargo run --features opencodego --example real_usage -- go` | Go API key supplied in `OPENCODE_GO_API_KEY` |
+| Ollama Cloud | `cargo run --features ollama --example real_usage -- ollama` | Cloud API key supplied in `OLLAMA_API_KEY` |
 
 The examples fetch live data and return an error if the fetch fails. They never
-substitute demonstration values. OpenCode needs a Console cookie rather than its
-CLI provider API key. Some CLI logins use OS credential stores that agentstat
+substitute demonstration values. OpenCode Zen/Console needs a Console cookie;
+OpenCode Go uses its API key. Some CLI logins use OS credential stores that agentstat
 does not read. See the [usage guide](docs/usage.md) for cookie setup, native file
 paths, account selection, direct token access, and platform restrictions.
 
 ## Currently supported
 
-**41 providers**, with 40 remote adapters and two optional local probes
+**42 providers**, with 41 remote adapters and two optional local probes
 (Antigravity supports both paths). Each row describes the data implemented today;
 not every provider exposes hourly or weekly limits.
 
-| Provider | Feature ID | Available data |
-| --- | --- | --- |
-| Codex | `codex` | Five-hour, weekly, and additional quotas; credits and resets |
-| Claude | `claude` | Subscription quotas, model windows, extra usage; Admin costs |
-| Cursor | `cursor` | CLI or dashboard usage, plan allowances, on-demand spend and resets |
-| Antigravity | `antigravity` | Grouped five-hour/weekly quotas and resets; optional `agy` probe |
-| OpenCode | `opencode` | Console subscription quotas; confirmed PAYG spend and prepaid balance |
-| OpenAI | `openai` | Organization costs through the Admin API |
-| ClinePass | `clinepass` | Five-hour, weekly, and monthly quotas |
-| Gemini app | `gemini` | Model quota buckets using an existing bearer token |
-| Copilot | `copilot` | Monthly quota snapshots and reported unlimited allowances |
-| z.ai / GLM | `zai` | Token, time, and credit quotas |
-| Moonshot / Kimi Open Platform | `moonshot` | Available, cash, and voucher balances |
-| Langdock | `langdock` | Session and weekly quotas using a supplied cookie |
-| Ollama | `ollama` | Included quota and purchased balance |
-| Synthetic | `synthetic` | Quota arrays; five-hour, weekly, and hourly search windows |
-| OpenRouter | `openrouter` | Key quota; daily, weekly, monthly, and lifetime spend |
-| ElevenLabs | `elevenlabs` | Character and voice-slot quotas |
-| Warp | `warp` | Request quota |
-| DeepSeek | `deepseek` | Balances by currency |
-| Codebuff | `codebuff` | Credit quota and available balance |
-| Venice | `venice` | USD and DIEM balances |
-| Poe | `poe` | Points balance |
-| ClawRouter | `clawrouter` | Monthly budget quota and reported spend |
-| ZenMux | `zenmux` | Five-hour and weekly quotas |
-| xAI | `xai` | Prepaid balance |
-| Nous Portal | `nous` | Subscription quota and balances |
-| CodeRabbit | `coderabbit` | Review count and plan through an opt-in Unix CLI probe |
-| GitKraken AI | `gitkraken` | Personal and organization quotas |
-| DevPass | `devpass` | Key, plan, and weekly premium quotas |
-| Atlas Cloud | `atlascloud` | Available balance |
-| Vercel AI Gateway | `vercel` | Available balance and lifetime spend |
-| xKiro | `xkiro` | Daily free-token quota |
-| Tavily | `tavily` | Plan, key, and PAYG quotas |
-| Linkup | `linkup` | Available balance |
-| Exa | `exa` | Month-to-date spend |
-| Cosmic AI | `cosmic` | Numeric input and output quotas |
-| Aerostack | `aerostack` | Monthly token quota |
-| Sail Research | `sailresearch` | Reported 30-day spend and available balance |
-| Sofya | `sofya` | Credit, plan-credit, and purchased-credit balances |
-| fal | `fal` | Available balance |
-| FLORA | `flora` | Available balance and monthly spend |
-| Munito | `munito` | Admin daily/monthly spend and limits |
+The **test coverage** status describes automated coverage. **Extended tests**
+means multiple dedicated provider scenarios beyond the shared request and
+normalization fixtures. **Fixture tests** means those shared fixtures cover the
+provider's request and normalized result. [Real-account checks are welcome](#contributions-wanted)
+for every provider.
+
+| Provider | Feature ID | Test coverage | Available data |
+| --- | --- | --- | --- |
+| Codex | `codex` | Extended tests | Five-hour, weekly, and additional quotas; credits and resets |
+| Claude | `claude` | Extended tests | Subscription quotas, model windows, extra usage; Admin costs |
+| Cursor | `cursor` | Extended tests | CLI or dashboard usage, plan allowances, on-demand spend and resets |
+| Antigravity | `antigravity` | Extended tests | Grouped five-hour/weekly quotas and resets; optional `agy` probe |
+| OpenCode Zen / Console | `opencode` | Extended tests | Console Go quotas; Zen PAYG spend and prepaid balance |
+| OpenCode Go | `opencodego` | Extended tests | Key-authenticated five-hour, weekly, and monthly percentages and resets |
+| OpenAI | `openai` | Extended tests | Organization costs through the Admin API |
+| ClinePass | `clinepass` | Fixture tests | Five-hour, weekly, and monthly quotas |
+| Gemini app | `gemini` | Fixture tests | Model quota buckets using an existing bearer token |
+| Copilot | `copilot` | Fixture tests | Monthly quota snapshots and reported unlimited allowances |
+| z.ai / GLM | `zai` | Fixture tests | Token, time, and credit quotas |
+| Moonshot / Kimi Open Platform | `moonshot` | Fixture tests | Available, cash, and voucher balances |
+| Langdock | `langdock` | Fixture tests | Session and weekly quotas using a supplied cookie |
+| Ollama | `ollama` | Extended tests | Monthly included credits or legacy session/weekly quotas; purchased balance |
+| Synthetic | `synthetic` | Fixture tests | Quota arrays; five-hour, weekly, and hourly search windows |
+| OpenRouter | `openrouter` | Fixture tests | Key quota; daily, weekly, monthly, and lifetime spend |
+| ElevenLabs | `elevenlabs` | Fixture tests | Character and voice-slot quotas |
+| Warp | `warp` | Fixture tests | Request quota |
+| DeepSeek | `deepseek` | Fixture tests | Balances by currency |
+| Codebuff | `codebuff` | Fixture tests | Credit quota and available balance |
+| Venice | `venice` | Fixture tests | USD and DIEM balances |
+| Poe | `poe` | Fixture tests | Points balance |
+| ClawRouter | `clawrouter` | Fixture tests | Monthly budget quota and reported spend |
+| ZenMux | `zenmux` | Fixture tests | Five-hour and weekly quotas |
+| xAI | `xai` | Fixture tests | Prepaid balance |
+| Nous Portal | `nous` | Fixture tests | Subscription quota and balances |
+| CodeRabbit | `coderabbit` | Fixture tests | Review count and plan through an opt-in Unix CLI probe |
+| GitKraken AI | `gitkraken` | Fixture tests | Personal and organization quotas |
+| DevPass | `devpass` | Fixture tests | Key, plan, and weekly premium quotas |
+| Atlas Cloud | `atlascloud` | Fixture tests | Available balance |
+| Vercel AI Gateway | `vercel` | Fixture tests | Available balance and lifetime spend |
+| xKiro | `xkiro` | Fixture tests | Daily free-token quota |
+| Tavily | `tavily` | Fixture tests | Plan, key, and PAYG quotas |
+| Linkup | `linkup` | Fixture tests | Available balance |
+| Exa | `exa` | Fixture tests | Month-to-date spend |
+| Cosmic AI | `cosmic` | Fixture tests | Numeric input and output quotas |
+| Aerostack | `aerostack` | Fixture tests | Monthly token quota |
+| Sail Research | `sailresearch` | Fixture tests | Reported 30-day spend and available balance |
+| Sofya | `sofya` | Fixture tests | Credit, plan-credit, and purchased-credit balances |
+| fal | `fal` | Fixture tests | Available balance |
+| FLORA | `flora` | Fixture tests | Available balance and monthly spend |
+| Munito | `munito` | Fixture tests | Admin daily/monthly spend and limits |
 
 For endpoint details, authentication restrictions, and omitted enrichments, see
 [full provider coverage](docs/providers.md). The
@@ -203,7 +215,7 @@ For endpoint details, authentication restrictions, and omitted enrichments, see
 
 ## Coming soon
 
-**61 integrations are planned.** They have catalog IDs and Cargo features, but no
+**60 integrations are planned.** They have catalog IDs and Cargo features, but no
 working fetch adapter yet. This is a backlog, with no promised release order or
 dates. Contributions are welcome.
 
@@ -212,7 +224,6 @@ dates. Contributions are welcome.
 
 | Provider | Planned feature ID |
 | --- | --- |
-| OpenCode Go | `opencodego` |
 | Alibaba Coding Plan | `alibaba` |
 | Alibaba Token Plan | `alibabatokenplan` |
 | Qwen Cloud | `qwencloud` |
@@ -287,6 +298,24 @@ for release:
 | Doubao | `doubao` | The identified validation path generates a chat completion. |
 | Muse Code | `muse` | The identified authentication path creates an API key. |
 | Pi | `pi` | Local transcript scanning and estimated cost history are outside this crate. |
+
+## Contributions wanted
+
+We need people with access to different providers to check agentstat against
+their real usage pages. A successful check is useful too: it helps maintainers
+spot endpoint or response changes and improve confidence in the adapters above.
+
+| Help needed | How to contribute |
+| --- | --- |
+| Real-account checks | Run a [live example](#try-your-real-account), compare its results with the provider's usage page, then [share the result](https://github.com/dhanushk-offl/agentstat/issues/new?template=provider_check.yml). |
+| Adapter fixes | If a provider's response differs, add a redacted synthetic fixture and a focused fix. See [contributing](CONTRIBUTING.md). |
+| More providers | Pick an entry from [Coming soon](#coming-soon) and discuss its read-only usage endpoint before opening a pull request. |
+
+For a field report, include the provider, crate version or commit, enabled
+features, platform, credential type, date, and CLI version when relevant. Describe
+what matched or differed without sharing tokens, cookies, account IDs, or raw
+authenticated responses. The [contribution guide](CONTRIBUTING.md#live-provider-checks)
+has a short checklist.
 
 ## Data and credentials
 

@@ -58,10 +58,22 @@ fixed, read-only arguments without a shell, bound output and execution time, and
 clean up processes on cancellation. Document platform restrictions and any
 behavior owned by the external CLI.
 
-If you perform a live check, record the provider, crate commit, CLI version when
-relevant, platform, and date. Describe what matched the provider's usage page
-without retaining secrets or private account data. Distinguish fixture coverage
-from live verification.
+## Live provider checks
+
+Checks with real accounts are especially helpful for the providers in the
+[README table](README.md#currently-supported). Use a relevant command from
+[Try your real account](README.md#try-your-real-account) or call `Client::fetch`
+from your application with the provider's Cargo feature enabled. Compare the
+reported windows, model labels, limits, reset times, balances, and spend with the
+provider's own usage page.
+
+Share the result in a [provider check](https://github.com/dhanushk-offl/agentstat/issues/new?template=provider_check.yml)
+or pull request. Include the provider, crate version or commit, enabled features,
+platform, credential type, date, and CLI version when relevant. Say which fields
+matched or differed, and whether the fetch returned an error. Remove tokens,
+cookies, account IDs, personal details, and raw authenticated response bodies.
+If you can reproduce a mismatch with a synthetic response, add that as a fixture
+with the fix.
 
 ## Checks before a pull request
 

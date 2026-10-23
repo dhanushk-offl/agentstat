@@ -1004,6 +1004,69 @@ async fn codebuff_api_key_keeps_bearer_header_request() {
 
 #[cfg(feature = "ollama")]
 #[tokio::test]
+async fn ollama_legacy_limits_preserve_remaining_percent_and_reset_times() {
+    let (base, server) = server(vec![Reply::json(json!({
+        "included": {
+            "session": {"remaining_percent": 75, "resets_at": "2026-10-23T07:00:00Z"},
+            "weekly": {"remaining_percent": 40, "resets_at": "2026-10-29T00:00:00Z"}
+        },
+        "purchased": {"balance_usd": "12.345"}
+    }))])
+    .await;
+    let snapshot = builder(&base, ProviderId::Ollama)
+        .build()
+        .unwrap()
+        .fetch(FetchRequest::new(
+            ProviderId::Ollama,
+            Credentials::api_key("private"),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(snapshot.windows.len(), 2);
+    assert_eq!(snapshot.windows[0].id, "session");
+    assert_eq!(snapshot.windows[0].utilization_percent, Some(25.0));
+    assert_eq!(snapshot.windows[0].duration_seconds, Some(18_000));
+    assert_eq!(snapshot.windows[1].utilization_percent, Some(60.0));
+    assert_eq!(snapshot.windows[1].duration_seconds, Some(604_800));
+    assert!(
+        snapshot
+            .windows
+            .iter()
+            .all(|window| window.resets_at.is_some())
+    );
+    assert_eq!(snapshot.balances[0].amount.as_str(), "12.345");
+    let requests = server.await.unwrap();
+    assert_eq!(requests.len(), 1);
+    assert!(requests[0].starts_with("GET /api/balance "));
+    assert!(requests[0].contains("authorization: Bearer private"));
+}
+
+#[cfg(feature = "ollama")]
+#[tokio::test]
+async fn ollama_rejects_malformed_legacy_meter() {
+    let (base, server) = server(vec![Reply::json(json!({
+        "included": {
+            "session": {"remaining_percent": 110, "resets_at": "2026-10-23T07:00:00Z"},
+            "weekly": {"remaining_percent": 40, "resets_at": "2026-10-29T00:00:00Z"}
+        }
+    }))])
+    .await;
+    assert!(matches!(
+        builder(&base, ProviderId::Ollama)
+            .build()
+            .unwrap()
+            .fetch(FetchRequest::new(
+                ProviderId::Ollama,
+                Credentials::bearer("private")
+            ))
+            .await,
+        Err(AgentStatError::InvalidResponse(_))
+    ));
+    server.await.unwrap();
+}
+
+#[cfg(feature = "ollama")]
+#[tokio::test]
 async fn mismatched_typed_provider_configuration_is_rejected_before_fetch() {
     let result = Client::builder()
         .build()
@@ -1017,6 +1080,65 @@ async fn mismatched_typed_provider_configuration_is_rejected_before_fetch() {
         )
         .await;
     assert!(matches!(result, Err(AgentStatError::Configuration(_))));
+}
+
+#[cfg(feature = "opencodego")]
+#[tokio::test]
+async fn opencode_go_reads_key_authenticated_quota_windows() {
+    let (base, server) = server(vec![Reply::json(json!({"usage": {
+        "rolling": {"status": "ok", "percent": 12, "resetsAt": "2026-10-23T03:00:00Z"},
+        "weekly": {"status": "rate-limited", "percent": 100, "resetsAt": "2026-10-29T00:00:00Z"},
+        "monthly": {"status": "ok", "percent": 8, "resetsAt": "2026-11-01T00:00:00Z"}
+    }}))])
+    .await;
+    let snapshot = builder(&base, ProviderId::OpenCodeGo)
+        .build()
+        .unwrap()
+        .fetch(FetchRequest::new(
+            ProviderId::OpenCodeGo,
+            Credentials::api_key("private"),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(snapshot.source, Source::Api);
+    assert_eq!(snapshot.windows.len(), 3);
+    assert_eq!(snapshot.windows[0].id, "five-hour");
+    assert_eq!(snapshot.windows[0].duration_seconds, Some(18_000));
+    assert_eq!(snapshot.windows[1].utilization_percent, Some(100.0));
+    assert_eq!(snapshot.windows[2].id, "monthly");
+    assert_eq!(snapshot.windows[2].kind, WindowKind::Calendar);
+    assert!(snapshot.balances.is_empty());
+    let requests = server.await.unwrap();
+    assert_eq!(requests.len(), 1);
+    assert!(requests[0].starts_with("GET /zen/go/v1/usage "));
+    assert!(requests[0].contains("authorization: Bearer private"));
+}
+
+#[cfg(feature = "opencodego")]
+#[tokio::test]
+async fn opencode_go_rejects_missing_or_invalid_windows() {
+    for body in [
+        json!({"usage": {}}),
+        json!({"usage": {
+            "rolling": {"status": "ok", "percent": 120, "resetsAt": "2026-10-23T03:00:00Z"},
+            "weekly": {"status": "ok", "percent": 20, "resetsAt": "2026-10-29T00:00:00Z"},
+            "monthly": {"status": "ok", "percent": 10, "resetsAt": "2026-11-01T00:00:00Z"}
+        }}),
+    ] {
+        let (base, server) = server(vec![Reply::json(body)]).await;
+        assert!(matches!(
+            builder(&base, ProviderId::OpenCodeGo)
+                .build()
+                .unwrap()
+                .fetch(FetchRequest::new(
+                    ProviderId::OpenCodeGo,
+                    Credentials::api_key("private")
+                ))
+                .await,
+            Err(AgentStatError::InvalidResponse(_))
+        ));
+        server.await.unwrap();
+    }
 }
 
 #[cfg(feature = "opencode")]
@@ -1100,6 +1222,55 @@ mod opencode {
             assert!(request.contains("cookie: __Host-console_session=test-secret"));
             assert!(!request.contains("authorization:"));
         }
+    }
+
+    #[tokio::test]
+    async fn go_subscription_can_include_zen_prepaid_balance() {
+        let (base, server) = server(vec![
+            Reply::json(quota()),
+            Reply::json(json!({
+                "mode": "pay-as-you-go",
+                "billingMode": "prepaid",
+                "balanceMicroCents": "1250000000"
+            })),
+        ])
+        .await;
+        let snapshot = builder(&base, ProviderId::OpenCode)
+            .build()
+            .unwrap()
+            .fetch(request(Some("wrk_A")).include_optional(true))
+            .await
+            .unwrap();
+        assert_eq!(snapshot.windows.len(), 3);
+        assert_eq!(snapshot.balances[0].id, "prepaid");
+        assert_eq!(snapshot.balances[0].amount.as_str(), "12.5");
+        let requests = server.await.unwrap();
+        assert_eq!(requests.len(), 2);
+        assert!(requests[1].starts_with("GET /console/api/billing/status "));
+        assert!(requests[1].contains("x-org-id: wrk_A"));
+    }
+
+    #[tokio::test]
+    async fn optional_zen_balance_failure_keeps_go_quota() {
+        let (base, server) = server(vec![
+            Reply::json(quota()),
+            Reply {
+                status: 503,
+                body: "unavailable".into(),
+                headers: vec![],
+            },
+        ])
+        .await;
+        let snapshot = builder(&base, ProviderId::OpenCode)
+            .build()
+            .unwrap()
+            .fetch(request(Some("wrk_A")).include_optional(true))
+            .await
+            .unwrap();
+        assert_eq!(snapshot.windows.len(), 3);
+        assert!(snapshot.balances.is_empty());
+        assert_eq!(snapshot.warnings, vec![Warning::OptionalFetchFailed]);
+        server.await.unwrap();
     }
 
     #[tokio::test]

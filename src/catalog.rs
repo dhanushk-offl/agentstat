@@ -491,9 +491,9 @@ impl ProviderId {
             Self::OpenCodeGo => ProviderDescriptor {
                 id: self,
                 name: "OpenCode Go",
-                status: CoverageStatus::Planned,
+                status: CoverageStatus::Implemented,
                 enabled: cfg!(feature = "opencodego"),
-                reason: "Adapter port pending.",
+                reason: "",
             },
             Self::Alibaba => ProviderDescriptor {
                 id: self,
