@@ -7,13 +7,14 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="docs/development.md"><img src="https://img.shields.io/badge/Rust-stable-orange?logo=rust" alt="Rust stable"></a>
   <a href="#currently-supported"><img src="https://img.shields.io/badge/providers-42_implemented-brightgreen" alt="42 implemented providers"></a>
-  <a href="https://scorecard.dev/viewer/?uri=github.com/dhanushk-offl/agentstat"><img src="docs/media/openssf-scorecard.svg" alt="OpenSSF Scorecard" title="View the live OpenSSF Scorecard"></a><br><br>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/dhanushk-offl/agentstat"><img src="https://api.scorecard.dev/projects/github.com/dhanushk-offl/agentstat/badge" alt="OpenSSF Scorecard"></a><br><br>
   <a href="#quick-start">Quick start</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#examples">Examples</a> ·
   <a href="#currently-supported">Supported providers</a> ·
   <a href="#coming-soon">Coming soon</a> ·
   <a href="docs/usage.md">Usage guide</a> ·
+  <a href="https://github.com/dhanushk-offl/agentstat/wiki">Wiki</a> ·
   <a href="#contributions-wanted">Contribute</a>
 </p>
 
@@ -339,6 +340,7 @@ check the returned data against your provider's usage page.
 | Resource | What you will find |
 | --- | --- |
 | [Usage guide](docs/usage.md) | Credentials, scopes, live examples, and transport options |
+| [Wiki](https://github.com/dhanushk-offl/agentstat/wiki) | Installation, examples, troubleshooting, issues, and roadmap |
 | [Provider coverage](docs/providers.md) | Data surfaces and restrictions for every provider |
 | [Development guide](docs/development.md) | Architecture, feature checks, and packaging |
 | [Release guide](docs/releasing.md) | Tag-triggered crates.io publishing and GitHub Releases |
