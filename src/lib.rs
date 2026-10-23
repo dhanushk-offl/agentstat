@@ -19,6 +19,8 @@ mod error;
 #[cfg(feature = "local-files")]
 pub mod local;
 mod models;
+#[cfg(all(feature = "opencode-local", unix))]
+mod opencode_local;
 #[cfg(feature = "local-probes")]
 mod probe;
 mod providers;

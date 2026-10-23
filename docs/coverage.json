@@ -80,7 +80,7 @@
       "endpoint": "https://opencode.ai/console/api/go/status",
       "method": "GET",
       "credential": "cookie",
-      "data": "Console session cookie: five-hour, weekly, optional monthly USD-equivalent Go quota meters and resets. Confirmed Zen PAYG accounts: reported 30-day spend and prepaid balance. Go subscribers can opt into a supplemental Zen prepaid balance. Explicit workspace selection; discovery requires exactly one workspace. No browser extraction or legacy server-function fallback."
+      "data": "Console session cookie: five-hour, weekly, optional monthly USD-equivalent Go quota meters and resets. Confirmed Zen PAYG accounts: reported 30-day spend and prepaid balance. Go subscribers can opt into a supplemental Zen prepaid balance. Explicit workspace selection; discovery requires exactly one workspace. Optional opencode-local Unix probe reports 30-day CLI session counts, tokens, and recorded cost, using structured JSON where available or rounded text totals on older releases. Local data has no account quota or balance."
     },
     {
       "id": "opencodego",

@@ -8,10 +8,164 @@ use agentstat::local::CredentialLocation;
     all(
         feature = "local-probes",
         unix,
-        any(feature = "coderabbit", feature = "antigravity")
+        any(
+            feature = "coderabbit",
+            feature = "antigravity",
+            feature = "opencode-local"
+        )
     )
 ))]
 use agentstat::*;
+
+#[cfg(all(feature = "opencode-local", unix))]
+mod opencode_cli_probe {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    fn executable(dir: &std::path::Path, output: &str) -> std::path::PathBuf {
+        let path = dir.join("opencode");
+        let script = format!(
+            "#!/bin/sh\n[ \"$#\" = 4 ] && [ \"$1\" = stats ] && [ \"$2\" = --days ] && [ \"$3\" = 30 ] && [ \"$4\" = --json ] || exit 2\n[ \"$NO_COLOR\" = 1 ] || exit 3\n[ \"$OPENCODE_DISABLE_AUTOUPDATE\" = true ] && [ \"$OPENCODE_DISABLE_PRUNE\" = true ] && [ \"$OPENCODE_DISABLE_MODELS_FETCH\" = true ] || exit 4\ncat <<'OUTPUT'\n{output}\nOUTPUT\n"
+        );
+        std::fs::write(&path, script).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        path
+    }
+
+    #[tokio::test]
+    async fn local_stats_are_explicit_and_report_activity_without_quota() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = executable(
+            dir.path(),
+            r#"{"range":{"from":1767205800000,"to":1792734285567},"sessions":2,"prompts":12,"steps":20,"tokens":{"input":100,"output":50,"reasoning":10,"cache":{"read":70,"write":0}},"cost":1.25,"models":[{"model":{"id":"glm-5","providerID":"opencode-go","variant":"medium"},"tokens":{"input":60,"output":20},"cost":0.75}]}"#,
+        );
+        let request =
+            FetchRequest::new(ProviderId::OpenCode, Credentials::None).source(Source::LocalProbe);
+        assert!(matches!(
+            Client::builder()
+                .build()
+                .unwrap()
+                .fetch(request.clone())
+                .await,
+            Err(AgentStatError::LocalAccessDisabled)
+        ));
+        let snapshot = Client::builder()
+            .allow_local_probes(true)
+            .probe_executable(ProviderId::OpenCode, path)
+            .build()
+            .unwrap()
+            .fetch(request)
+            .await
+            .unwrap();
+        assert_eq!(snapshot.source, Source::LocalProbe);
+        assert_eq!(snapshot.credential_source, CredentialSource::LocalProbe);
+        assert_eq!(snapshot.windows.len(), 10);
+        assert_eq!(snapshot.windows[3].used.as_ref().unwrap().as_str(), "100");
+        assert!(
+            snapshot
+                .windows
+                .iter()
+                .all(|w| matches!(w.limit, QuotaLimit::Unknown))
+        );
+        assert_eq!(
+            snapshot.windows[8].model.as_deref(),
+            Some("opencode-go/glm-5#medium")
+        );
+        assert_eq!(snapshot.spend[0].amount.as_str(), "1.25");
+        assert_eq!(snapshot.spend[1].amount.as_str(), "0.75");
+    }
+
+    #[tokio::test]
+    async fn local_stats_reject_invalid_data_and_scopes() {
+        let dir = tempfile::tempdir().unwrap();
+        for body in [
+            "not JSON",
+            r#"{"range":{"from":2,"to":1},"sessions":0}"#,
+            r#"{"range":{"from":1767205800000,"to":1792734285567},"sessions":-1,"prompts":0,"steps":0,"tokens":{"input":0,"output":0,"reasoning":0,"cache":{"read":0,"write":0}},"cost":0}"#,
+        ] {
+            let path = executable(dir.path(), body);
+            let error = Client::builder()
+                .allow_local_probes(true)
+                .probe_executable(ProviderId::OpenCode, path)
+                .build()
+                .unwrap()
+                .fetch(
+                    FetchRequest::new(ProviderId::OpenCode, Credentials::None)
+                        .source(Source::LocalProbe),
+                )
+                .await
+                .unwrap_err();
+            assert!(matches!(error, AgentStatError::InvalidResponse(_)));
+        }
+        let error = Client::builder()
+            .allow_local_probes(true)
+            .build()
+            .unwrap()
+            .fetch(
+                FetchRequest::new(ProviderId::OpenCode, Credentials::None)
+                    .source(Source::LocalProbe)
+                    .scope(AccountScope {
+                        workspace_id: Some("wrk_example".into()),
+                        ..Default::default()
+                    }),
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(error, AgentStatError::Configuration(_)));
+    }
+
+    #[tokio::test]
+    async fn older_cli_text_report_is_used_when_json_is_unavailable() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("opencode");
+        let script = r##"#!/bin/sh
+[ "$1" = stats ] && [ "$2" = --days ] && [ "$3" = 30 ] || exit 2
+if [ "$4" = --json ]; then
+  printf 'opencode stats\nOptions: --days --models\n'
+  exit 1
+fi
+[ "$#" = 3 ] || exit 3
+cat <<'REPORT'
+┌────────────────────────────────────────┐
+│Sessions                            498 │
+│Messages                         36,626 │
+│Total Cost                       $19.10 │
+│Input                            194.7M │
+│Output                            11.1M │
+│Cache Read                      3610.3M │
+│Cache Write                           0 │
+└────────────────────────────────────────┘
+REPORT
+"##;
+        std::fs::write(&path, script).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let snapshot = Client::builder()
+            .allow_local_probes(true)
+            .probe_executable(ProviderId::OpenCode, path)
+            .build()
+            .unwrap()
+            .fetch(
+                FetchRequest::new(ProviderId::OpenCode, Credentials::None)
+                    .source(Source::LocalProbe),
+            )
+            .await
+            .unwrap();
+        assert_eq!(snapshot.source, Source::LocalProbe);
+        assert_eq!(snapshot.warnings, vec![Warning::IncompleteData]);
+        assert_eq!(snapshot.windows[0].used.as_ref().unwrap().as_str(), "498");
+        assert_eq!(snapshot.windows[1].used.as_ref().unwrap().as_str(), "36626");
+        assert_eq!(
+            snapshot.windows[2].used.as_ref().unwrap().as_str(),
+            "194700000"
+        );
+        assert_eq!(
+            snapshot.windows[4].used.as_ref().unwrap().as_str(),
+            "3610300000"
+        );
+        assert_eq!(snapshot.spend[0].amount.as_str(), "19.1");
+        assert!(snapshot.spend[0].starts_at.is_none());
+    }
+}
 
 #[cfg(feature = "cursor")]
 #[tokio::test]
