@@ -1,22 +1,26 @@
 //! Fetch real account usage using existing credentials or a read-only CLI probe.
 //! Run: cargo run --features local-files --example real_usage -- codex
 //! OpenCode: cargo run --features opencode --example real_usage -- opencode
+//! OpenCode CLI: cargo run --features opencode-local --example real_usage -- opencode-cli
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use agentstat::{AccountScope, Client, Credentials, FetchRequest, ProviderId};
 
-    let provider = match std::env::args().nth(1).as_deref().unwrap_or("codex") {
+    let selection = std::env::args().nth(1).unwrap_or_else(|| "codex".into());
+    let opencode_cli = matches!(selection.as_str(), "opencode-cli" | "opencode-local");
+    let provider = match selection.as_str() {
         "codex" => ProviderId::Codex,
         "claude" => ProviderId::Claude,
         "opencode" | "zen" => ProviderId::OpenCode,
+        "opencode-cli" | "opencode-local" => ProviderId::OpenCode,
         "opencode-go" | "go" => ProviderId::OpenCodeGo,
         "ollama" => ProviderId::Ollama,
         "cursor" | "agent" => ProviderId::Cursor,
         "antigravity" | "agy" => ProviderId::Antigravity,
         _ => {
             return Err(
-                "Usage: real_usage [codex|claude|opencode|opencode-go|ollama|cursor|agy]".into(),
+                "Usage: real_usage [codex|claude|opencode|opencode-cli|opencode-go|ollama|cursor|agy]".into(),
             );
         }
     };
@@ -33,7 +37,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "local-probes")]
     let builder = builder.allow_local_probes(true);
     let client = builder.build()?;
-    let request = if provider == ProviderId::OpenCode {
+    let request = if opencode_cli {
+        if !cfg!(feature = "opencode-local") {
+            return Err("Enable OpenCode CLI statistics with --features opencode-local".into());
+        }
+        FetchRequest::new(provider, Credentials::None).source(agentstat::Source::LocalProbe)
+    } else if provider == ProviderId::OpenCode {
         let cookie = std::env::var("OPENCODE_COOKIE")
             .ok()
             .filter(|value| !value.trim().is_empty())

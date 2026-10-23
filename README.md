@@ -143,20 +143,22 @@ From this repository, after signing into the corresponding CLI:
 | Claude Code | `cargo run --features local-files --example real_usage -- claude` | Existing local OAuth credential file |
 | Cursor / `agent` | `cargo run --features cursor,local-files --example real_usage -- cursor` | Existing CLI `auth.json` |
 | Antigravity / `agy` | `cargo run --features antigravity,local-probes --example real_usage -- agy` | Installed CLI login; Unix only |
+| OpenCode CLI / local | `cargo run --features opencode-local --example real_usage -- opencode-cli` | Installed CLI session history; Unix only |
 | OpenCode Zen / Console | `cargo run --features opencode --example real_usage -- opencode` | Console cookie supplied in `OPENCODE_COOKIE` |
 | OpenCode Go | `cargo run --features opencodego --example real_usage -- go` | Go API key supplied in `OPENCODE_GO_API_KEY` |
 | Ollama Cloud | `cargo run --features ollama --example real_usage -- ollama` | Cloud API key supplied in `OLLAMA_API_KEY` |
 
 The examples fetch live data and return an error if the fetch fails. They never
 substitute demonstration values. OpenCode Zen/Console needs a Console cookie;
-OpenCode Go uses its API key. Some CLI logins use OS credential stores that agentstat
+OpenCode Go uses its API key. OpenCode CLI/local reports recorded 30-day session
+tokens and cost, not account quota or balance. Some CLI logins use OS credential stores that agentstat
 does not read. See the [usage guide](docs/usage.md) for cookie setup, native file
 paths, account selection, direct token access, and platform restrictions.
 
 ## Currently supported
 
-**42 providers**, with 41 remote adapters and two optional local probes
-(Antigravity supports both paths). Each row describes the data implemented today;
+**42 providers**, with 41 remote adapters and three optional local probes
+(Antigravity and OpenCode support both paths). Each row describes the data implemented today;
 not every provider exposes hourly or weekly limits.
 
 The **test coverage** status describes automated coverage. **Extended tests**
@@ -171,7 +173,7 @@ for every provider.
 | Claude | `claude` | Extended tests | Subscription quotas, model windows, extra usage; Admin costs |
 | Cursor | `cursor` | Extended tests | CLI or dashboard usage, plan allowances, on-demand spend and resets |
 | Antigravity | `antigravity` | Extended tests | Grouped five-hour/weekly quotas and resets; optional `agy` probe |
-| OpenCode Zen / Console | `opencode` | Extended tests | Console Go quotas; Zen PAYG spend and prepaid balance |
+| OpenCode Zen / Console / CLI | `opencode`; optional `opencode-local` | Extended tests | Console Go quotas and Zen PAYG spend/balance; local CLI session tokens and cost |
 | OpenCode Go | `opencodego` | Extended tests | Key-authenticated five-hour, weekly, and monthly percentages and resets |
 | OpenAI | `openai` | Extended tests | Organization costs through the Admin API |
 | ClinePass | `clinepass` | Fixture tests | Five-hour, weekly, and monthly quotas |

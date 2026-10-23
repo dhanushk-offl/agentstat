@@ -7,6 +7,7 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
         return Err(AgentStatError::LocalAccessDisabled);
     }
     if !matches!(r.provider, ProviderId::CodeRabbit | ProviderId::Antigravity)
+        && !(cfg!(feature = "opencode-local") && r.provider == ProviderId::OpenCode)
         || !matches!(r.source, Source::Auto | Source::LocalProbe)
         || !matches!(r.credentials, Credentials::None)
     {
@@ -15,6 +16,13 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
     if !matches!(r.config, ProviderConfig::Default) {
         return Err(AgentStatError::Configuration(
             "local usage probes require default provider configuration",
+        ));
+    }
+    if r.provider == ProviderId::OpenCode
+        && (r.source != Source::LocalProbe || r.scope.workspace_id.is_some())
+    {
+        return Err(AgentStatError::Configuration(
+            "OpenCode CLI statistics require Source::LocalProbe without a workspace scope",
         ));
     }
     #[cfg(not(unix))]
@@ -32,6 +40,8 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
             .unwrap_or_else(|| {
                 if r.provider == ProviderId::Antigravity {
                     "agy".into()
+                } else if r.provider == ProviderId::OpenCode {
+                    "opencode".into()
                 } else {
                     "coderabbit".into()
                 }
@@ -48,6 +58,12 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
                     "/dev/null",
                 ])
                 .env("AGY_CLI_DISABLE_AUTO_UPDATE", "true");
+        } else if r.provider == ProviderId::OpenCode {
+            command
+                .args(["stats", "--days", "30", "--json"])
+                .env("OPENCODE_DISABLE_AUTOUPDATE", "true")
+                .env("OPENCODE_DISABLE_PRUNE", "true")
+                .env("OPENCODE_DISABLE_MODELS_FETCH", "true");
         } else {
             command.arg("usage");
         }
@@ -61,14 +77,19 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
         let mut child = command.spawn().map_err(|_| AgentStatError::Probe)?;
         let guard = ProcessGroup(child.id().map(|id| nix::unistd::Pid::from_raw(id as i32)));
         let mut out = Vec::new();
+        let max_bytes = if r.provider == ProviderId::OpenCode {
+            1024 * 1024
+        } else {
+            128 * 1024
+        };
         let output = child.stdout.take().ok_or(AgentStatError::Probe)?;
         let operation = async {
             output
-                .take(128 * 1024 + 1)
+                .take(max_bytes + 1)
                 .read_to_end(&mut out)
                 .await
                 .map_err(|_| AgentStatError::Probe)?;
-            if out.len() > 128 * 1024 {
+            if out.len() > max_bytes as usize {
                 return Err(AgentStatError::ResponseTooLarge);
             }
             let status = child.wait().await.map_err(|_| AgentStatError::Probe)?;
@@ -82,11 +103,25 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
                     AgentStatError::InvalidResponse("expected Antigravity usage JSON")
                 })?;
                 crate::providers::parse_antigravity_probe(r, &body)
+            } else if r.provider == ProviderId::OpenCode {
+                #[cfg(feature = "opencode-local")]
+                {
+                    crate::opencode_local::parse(r, &text)
+                }
+                #[cfg(not(feature = "opencode-local"))]
+                {
+                    Err(AgentStatError::UnsupportedSource(r.provider))
+                }
             } else {
                 parse(r, &text)
             }
         };
-        let result = tokio::time::timeout(std::time::Duration::from_secs(15), operation)
+        let timeout = if r.provider == ProviderId::OpenCode {
+            25
+        } else {
+            15
+        };
+        let result = tokio::time::timeout(std::time::Duration::from_secs(timeout), operation)
             .await
             .map_err(|_| AgentStatError::Timeout)?;
         drop(guard);
