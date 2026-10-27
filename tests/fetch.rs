@@ -5,7 +5,7 @@
     reason = "test executor state must be shared with cloned clients"
 )]
 
-#[cfg(feature = "local-files")]
+#[cfg(all(feature = "cursor", feature = "local-files"))]
 use agentstat::local::CredentialLocation;
 use agentstat::*;
 use futures::future::BoxFuture;
@@ -25,7 +25,7 @@ use serde_json::json;
 use std::collections::{HashMap, VecDeque};
 use std::convert::Infallible;
 use std::fmt::Write as _;
-#[cfg(feature = "local-files")]
+#[cfg(all(feature = "cursor", feature = "local-files"))]
 use std::fs;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicUsize, Ordering};

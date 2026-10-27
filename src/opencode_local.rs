@@ -20,21 +20,20 @@ pub(crate) fn parse_text(request: &FetchRequest, text: &str) -> Result<UsageSnap
         let label = parts[..parts.len() - 1].join(" ").to_ascii_lowercase();
         fields.insert(label, parts[parts.len() - 1]);
     }
-    let required = |name: &str| -> Result<Decimal> {
-        fields.get(name).and_then(|raw| compact_decimal(raw)).ok_or(
-            AgentStatError::InvalidResponse("missing or invalid OpenCode CLI text statistic"),
-        )
-    };
+    let invalid =
+        || AgentStatError::InvalidResponse("missing or invalid OpenCode CLI text statistic");
+    let required = |name: &str| -> Result<&str> { fields.get(name).copied().ok_or_else(invalid) };
     let mut snapshot = UsageSnapshot::new(request, Source::LocalProbe);
     snapshot.credential_source = CredentialSource::LocalProbe;
     snapshot.warnings.push(Warning::IncompleteData);
     push_amount(
         &mut snapshot,
         "sessions",
-        required("sessions")?,
+        integer_count(required("sessions")?).ok_or_else(invalid)?,
         Unit::Requests,
     );
-    if let Some(messages) = fields.get("messages").and_then(|raw| compact_decimal(raw)) {
+    if let Some(raw) = fields.get("messages") {
+        let messages = integer_count(raw).ok_or_else(invalid)?;
         push_amount(&mut snapshot, "messages", messages, Unit::Requests);
     }
     for (field, id) in [
@@ -43,11 +42,12 @@ pub(crate) fn parse_text(request: &FetchRequest, text: &str) -> Result<UsageSnap
         ("cache read", "cache-read-tokens"),
         ("cache write", "cache-write-tokens"),
     ] {
-        push_amount(&mut snapshot, id, required(field)?, Unit::Tokens);
+        let amount = token_count(required(field)?).ok_or_else(invalid)?;
+        push_amount(&mut snapshot, id, amount, Unit::Tokens);
     }
     snapshot.spend.push(SpendSummary {
         id: "local-cli-cost".into(),
-        amount: required("total cost")?,
+        amount: cost(required("total cost")?).ok_or_else(invalid)?,
         currency: "USD".into(),
         starts_at: None,
         ends_at: None,
@@ -55,16 +55,60 @@ pub(crate) fn parse_text(request: &FetchRequest, text: &str) -> Result<UsageSnap
     Ok(snapshot)
 }
 
-fn compact_decimal(raw: &str) -> Option<Decimal> {
-    let number = raw.trim_start_matches('$').replace(',', "");
-    let (number, exponent) = match number.chars().last()? {
-        'K' | 'k' => (&number[..number.len() - 1], 3),
-        'M' | 'm' => (&number[..number.len() - 1], 6),
-        'B' | 'b' => (&number[..number.len() - 1], 9),
-        _ => (number.as_str(), 0),
+fn normalized_number(raw: &str) -> Option<String> {
+    let (whole, fraction) = match raw.split_once('.') {
+        Some((whole, fraction)) if !fraction.is_empty() => (whole, Some(fraction)),
+        Some(_) => return None,
+        None => (raw, None),
     };
-    let value = format!("{number}e{exponent}").parse::<Decimal>().ok()?;
-    (!value.is_negative()).then_some(value)
+    let mut groups = whole.split(',');
+    let first = groups.next()?;
+    if first.is_empty() || !first.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+    if whole.contains(',') && first.len() > 3 {
+        return None;
+    }
+    let mut number = first.to_owned();
+    for group in groups {
+        if group.len() != 3 || !group.bytes().all(|byte| byte.is_ascii_digit()) {
+            return None;
+        }
+        number.push_str(group);
+    }
+    if let Some(fraction) = fraction {
+        if !fraction.bytes().all(|byte| byte.is_ascii_digit()) {
+            return None;
+        }
+        number.push('.');
+        number.push_str(fraction);
+    }
+    Some(number)
+}
+
+fn integer_count(raw: &str) -> Option<Decimal> {
+    let number = normalized_number(raw)?;
+    if number.contains('.') {
+        return None;
+    }
+    number.parse().ok()
+}
+
+fn token_count(raw: &str) -> Option<Decimal> {
+    let (number, exponent) = match raw.chars().last()? {
+        'K' | 'k' => (&raw[..raw.len() - 1], 3),
+        'M' | 'm' => (&raw[..raw.len() - 1], 6),
+        'B' | 'b' => (&raw[..raw.len() - 1], 9),
+        _ => (raw, 0),
+    };
+    let number = normalized_number(number)?;
+    let value: Decimal = format!("{number}e{exponent}").parse().ok()?;
+    (!value.as_str().contains('.')).then_some(value)
+}
+
+fn cost(raw: &str) -> Option<Decimal> {
+    let number = normalized_number(raw.strip_prefix('$')?)?;
+    number.parse().ok()
 }
 
 fn push_amount(snapshot: &mut UsageSnapshot, id: &str, amount: Decimal, unit: Unit) {
