@@ -18,7 +18,7 @@ body:
     id: version
     attributes:
       label: Crate version or commit
-      placeholder: "0.1.0"
+      placeholder: "0.1.1"
     validations:
       required: true
   - type: textarea

@@ -1,6 +1,6 @@
 [package]
 name = "agentstat"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Read-only AI provider usage, quota, balance, and reset data"
 license = "MIT"

@@ -589,7 +589,7 @@
     "url": "https://api.gitkraken.dev/v1/ai-tasks/usage",
     "headers": {
       "Client-Name": "agentstat",
-      "Client-Version": "0.1.0"
+      "Client-Version": "0.1.1"
     },
     "required": [
       "/data/used",

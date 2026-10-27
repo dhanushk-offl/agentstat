@@ -27,7 +27,7 @@ to fetch, where to store results, and how to display them.
 - Typed errors and batch fetching with bounded concurrency.
 - Caller-supplied credentials, with explicit opt-in for local files and CLI probes.
 
-**Early release: `0.1.0`.** Implemented adapters have synthetic request and
+**Source version: `0.1.1`.** Implemented adapters have synthetic request and
 normalization fixtures. [Help us validate providers with real accounts](#contributions-wanted).
 HTTP adapters target Linux, macOS, and Windows. Local CLI probes support Unix.
 The table reflects the current source checkout; check the released crate's
@@ -35,10 +35,10 @@ features when using crates.io.
 
 ## Quick start
 
-Add the published library to your Rust application:
+After version `0.1.1` is published, add the library to your Rust application:
 
 ```sh
-cargo add agentstat@0.1.0 --features local-files
+cargo add agentstat@0.1.1 --features local-files
 cargo add tokio --features macros,rt-multi-thread
 ```
 
@@ -46,9 +46,12 @@ Or put the same dependencies in `Cargo.toml`:
 
 ```toml
 [dependencies]
-agentstat = { version = "0.1.0", features = ["local-files"] }
+agentstat = { version = "0.1.1", features = ["local-files"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
+
+Before publication, use a path to your checkout instead, for example
+`agentstat = { path = "../agentstat", features = ["local-files"] }`.
 
 This `src/main.rs` reads your existing Codex CLI login and prints the reported
 quota windows. `local-files` is opt-in at both build time and runtime:
@@ -89,7 +92,7 @@ Codex and Claude are enabled by default. Select other integrations by their
 **feature ID** in the table below, for example:
 
 ```toml
-agentstat = { version = "0.1.0", default-features = false, features = ["cursor", "local-files"] }
+agentstat = { version = "0.1.1", default-features = false, features = ["cursor", "local-files"] }
 ```
 
 `all-providers` enables every catalog feature, including planned integrations that
