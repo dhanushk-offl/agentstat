@@ -366,6 +366,8 @@ async fn malformed_oversized_and_api_only_credentials_fail_without_leaking() {
 mod probes {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
+    #[cfg(not(target_os = "linux"))]
+    use std::process::Command;
     fn executable(dir: &Path, script: &str) -> PathBuf {
         let path = dir.join("coderabbit");
         fs::write(&path, script).expect("test fixture file should be writable");
@@ -456,7 +458,7 @@ mod probes {
             // can also remain visible to kill(pid, 0) while it is a zombie.
             #[cfg(not(target_os = "linux"))]
             for _ in 0..100 {
-                let output = std::process::Command::new("ps")
+                let output = Command::new("ps")
                     .args(["-o", "stat=", "-p", &pid.to_string()])
                     .output()
                     .unwrap();
