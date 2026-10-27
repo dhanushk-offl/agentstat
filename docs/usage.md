@@ -6,13 +6,16 @@ Detailed credential setup, account routing, live examples, and data behavior for
 
 ## Use from another Rust project
 
-Add the published crate to your application:
+These examples target version `0.1.1` after publication:
 
 ```toml
 [dependencies]
-agentstat = "0.1.0"
+agentstat = "0.1.1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ```
+
+Before publication, replace the version dependency with a path to your checkout,
+such as `agentstat = { path = "../agentstat" }`.
 
 ```rust
 use agentstat::{Client, Credentials, FetchRequest, ProviderId};
@@ -188,7 +191,7 @@ fixture coverage but has not yet been verified against a live OpenCode account.
 To use it from another Rust project:
 
 ```toml
-agentstat = { version = "0.1.0", features = ["opencode"] }
+agentstat = { version = "0.1.1", features = ["opencode"] }
 ```
 
 ```rust
@@ -285,8 +288,7 @@ not dollar balances or per-model usage. A Go subscriber who also has Zen prepaid
 credits can use the cookie-based `OpenCode` request with
 `include_optional(true)` to add the Zen balance; a failure to read that extra
 balance becomes a warning and preserves the Go quotas. API keys alone cannot
-read the Zen wallet. These additions need a release newer than `0.1.0` before
-they are available from crates.io.
+read the Zen wallet. These additions are included in version `0.1.1`.
 
 ### Ollama Cloud
 
@@ -303,8 +305,7 @@ cargo run --features ollama --example real_usage -- ollama
 ```
 
 Ollama recommends at most one balance request per minute per user. The legacy
-session/weekly mapping is in current source and needs a release newer than
-`0.1.0` for registry consumers.
+session/weekly mapping is included in version `0.1.1`.
 
 ## Data semantics
 

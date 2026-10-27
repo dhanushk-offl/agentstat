@@ -38,13 +38,13 @@ Run the checks from [the development guide](development.md). An optional
 `cargo publish --registry crates-io --locked --all-features --dry-run` also checks
 the package without uploading it; registry access is required.
 
-For version `0.1.0`, tag the merged commit and push the tag:
+For version `0.1.1`, tag the merged commit and push the tag:
 
 ```sh
 git switch main
 git pull --ff-only origin main
-git tag -a v0.1.0 -m "Release v0.1.0"
-git push origin v0.1.0
+git tag -a v0.1.1 -m "Release v0.1.1"
+git push origin v0.1.1
 ```
 
 The tag must exactly equal `v` followed by the package version. Its commit must
@@ -93,13 +93,13 @@ or use `gh run list --workflow release.yml` and `gh run watch <run-id>`.
   if the release already exists. It does not run checks or publish again:
 
   ```sh
-  gh workflow run release.yml --ref main -f tag=v0.1.0
+  gh workflow run release.yml --ref main -f tag=v0.1.1
   gh run list --workflow release.yml --limit 5
   gh run watch <run-id> --exit-status
-  gh release view v0.1.0
+  gh release view v0.1.1
   ```
 
-  Use the correct existing tag in place of `v0.1.0`. The updated workflow must
+  Use the correct existing tag in place of `v0.1.1`. The updated workflow must
   be present on `main` before starting this recovery run. Never retry
   `cargo publish` for a version already listed on crates.io.
 
@@ -108,14 +108,14 @@ or use `gh run list --workflow release.yml` and `gh run watch <run-id>`.
 After crates.io lists the version, consumers can install it with:
 
 ```sh
-cargo add agentstat@0.1.0
+cargo add agentstat@0.1.1
 ```
 
 Or add it to `Cargo.toml`:
 
 ```toml
 [dependencies]
-agentstat = "0.1.0"
+agentstat = "0.1.1"
 ```
 
 Provider and local-access features work the same way as for the local path
