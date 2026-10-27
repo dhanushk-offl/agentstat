@@ -223,12 +223,18 @@ The opt-in `opencode-local` feature uses the installed OpenCode CLI's
 reports session counts, token totals, recorded USD cost, and per-model
 input/output tokens and cost. On older releases without `--json`, it reads the
 text report's rounded totals and marks the snapshot `IncompleteData`; model
-details and exact range timestamps are unavailable in that format. These are
-the CLI's session records across providers, not remaining OpenCode account
-quota or Zen balance. The probe currently runs on Unix and does not need a
-Console cookie or Go API key. It disables the CLI's automatic update, pruning,
-and model-fetch checks for the subprocess; OpenCode may still write its normal
-log or start its local service when the command runs.
+details and exact range timestamps are unavailable in that format. The text
+probe requests the C locale and rejects malformed numeric values. The CLI's
+session records cover multiple
+providers and do not include remaining OpenCode account quota or Zen balance.
+The probe currently runs on Unix and does not need a Console cookie or Go API
+key. It disables the CLI's automatic update, pruning, and model-fetch checks for
+the subprocess; OpenCode may still write its normal log or start its local
+service when the command runs.
+
+Free models can still contribute sessions and tokens while recording zero cost.
+The local cost total can also include paid models used in other OpenCode sessions;
+it does not indicate how much prepaid credit remains.
 
 ```sh
 cargo run --features opencode-local --example real_usage -- opencode-cli

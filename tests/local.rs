@@ -27,9 +27,9 @@ use agentstat::*;
 use std::fs;
 #[cfg(all(feature = "local-probes", unix))]
 use std::path::{Path, PathBuf};
-#[cfg(all(feature = "local-probes", unix))]
+#[cfg(all(feature = "local-probes", feature = "coderabbit", unix))]
 use std::time::Duration;
-#[cfg(all(feature = "local-probes", unix))]
+#[cfg(all(feature = "local-probes", feature = "coderabbit", unix))]
 use tokio::time;
 
 #[cfg(all(feature = "opencode-local", unix))]
@@ -41,6 +41,17 @@ mod opencode_cli_probe {
         let path = dir.join("opencode");
         let script = format!(
             "#!/bin/sh\n[ \"$#\" = 4 ] && [ \"$1\" = stats ] && [ \"$2\" = --days ] && [ \"$3\" = 30 ] && [ \"$4\" = --json ] || exit 2\n[ \"$NO_COLOR\" = 1 ] || exit 3\n[ \"$OPENCODE_DISABLE_AUTOUPDATE\" = true ] && [ \"$OPENCODE_DISABLE_PRUNE\" = true ] && [ \"$OPENCODE_DISABLE_MODELS_FETCH\" = true ] || exit 4\ncat <<'OUTPUT'\n{output}\nOUTPUT\n"
+        );
+        fs::write(&path, script).expect("test fixture file should be writable");
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o700))
+            .expect("test fixture file should be writable");
+        path
+    }
+
+    fn text_executable(dir: &Path, report: &str) -> PathBuf {
+        let path = dir.join("opencode");
+        let script = format!(
+            "#!/bin/sh\n[ \"$1\" = stats ] && [ \"$2\" = --days ] && [ \"$3\" = 30 ] || exit 2\nif [ \"$4\" = --json ]; then exit 1; fi\n[ \"$#\" = 3 ] || exit 3\n[ \"$LC_ALL\" = C ] && [ \"$LANG\" = C ] && [ \"$LANGUAGE\" = C ] || exit 4\ncat <<'REPORT'\n{report}\nREPORT\n"
         );
         fs::write(&path, script).expect("test fixture file should be writable");
         fs::set_permissions(&path, fs::Permissions::from_mode(0o700))
@@ -133,17 +144,9 @@ mod opencode_cli_probe {
     #[tokio::test]
     async fn older_cli_text_report_is_used_when_json_is_unavailable() {
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("opencode");
-        let script = r##"#!/bin/sh
-[ "$1" = stats ] && [ "$2" = --days ] && [ "$3" = 30 ] || exit 2
-if [ "$4" = --json ]; then
-  printf 'opencode stats\nOptions: --days --models\n'
-  exit 1
-fi
-[ "$#" = 3 ] || exit 3
-cat <<'REPORT'
+        let report = r#"
 ┌────────────────────────────────────────┐
-│Sessions                            498 │
+│Sessions                          1,234 │
 │Messages                         36,626 │
 │Total Cost                       $19.10 │
 │Input                            194.7M │
@@ -151,11 +154,8 @@ cat <<'REPORT'
 │Cache Read                      3610.3M │
 │Cache Write                           0 │
 └────────────────────────────────────────┘
-REPORT
-"##;
-        fs::write(&path, script).expect("test fixture file should be writable");
-        fs::set_permissions(&path, fs::Permissions::from_mode(0o700))
-            .expect("test fixture file should be writable");
+"#;
+        let path = text_executable(dir.path(), report);
         let snapshot = Client::builder()
             .allow_local_probes(true)
             .probe_executable(ProviderId::OpenCode, path)
@@ -169,7 +169,7 @@ REPORT
             .unwrap();
         assert_eq!(snapshot.source, Source::LocalProbe);
         assert_eq!(snapshot.warnings, vec![Warning::IncompleteData]);
-        assert_eq!(snapshot.windows[0].used.as_ref().unwrap().as_str(), "498");
+        assert_eq!(snapshot.windows[0].used.as_ref().unwrap().as_str(), "1234");
         assert_eq!(snapshot.windows[1].used.as_ref().unwrap().as_str(), "36626");
         assert_eq!(
             snapshot.windows[2].used.as_ref().unwrap().as_str(),
@@ -181,6 +181,71 @@ REPORT
         );
         assert_eq!(snapshot.spend[0].amount.as_str(), "19.1");
         assert!(snapshot.spend[0].starts_at.is_none());
+    }
+
+    #[tokio::test]
+    async fn legacy_report_rejects_ambiguous_and_malformed_counts() {
+        let dir = tempfile::tempdir().expect("temporary directory should be available");
+        for (sessions, input, cost) in [
+            ("1.234", "100", "$0.00"),
+            ("1,2", "100", "$0.00"),
+            ("1", "1.2", "$0.00"),
+            ("1", "100", "$1,2"),
+        ] {
+            let report = format!(
+                "│Sessions {sessions} │\n│Messages 1 │\n│Total Cost {cost} │\n│Input {input} │\n│Output 20 │\n│Cache Read 0 │\n│Cache Write 0 │"
+            );
+            let path = text_executable(dir.path(), &report);
+            let error = Client::builder()
+                .allow_local_probes(true)
+                .probe_executable(ProviderId::OpenCode, path)
+                .build()
+                .expect("client configuration should be valid")
+                .fetch(
+                    FetchRequest::new(ProviderId::OpenCode, Credentials::None)
+                        .source(Source::LocalProbe),
+                )
+                .await
+                .expect_err("malformed legacy statistics must not be reported as usage");
+            assert!(
+                matches!(error, AgentStatError::InvalidResponse(_)),
+                "ambiguous session, token, and cost values must be rejected"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn free_model_reports_tokens_with_zero_recorded_cost() {
+        let dir = tempfile::tempdir().expect("temporary directory should be available");
+        let path = executable(
+            dir.path(),
+            r#"{"range":{"from":1767205800000,"to":1792734285567},"sessions":1,"prompts":1,"steps":1,"tokens":{"input":100,"output":20,"reasoning":0,"cache":{"read":0,"write":0}},"cost":0,"models":[{"model":{"id":"example-free","providerID":"opencode"},"tokens":{"input":100,"output":20},"cost":0}]}"#,
+        );
+        let snapshot = Client::builder()
+            .allow_local_probes(true)
+            .probe_executable(ProviderId::OpenCode, path)
+            .build()
+            .expect("client configuration should be valid")
+            .fetch(
+                FetchRequest::new(ProviderId::OpenCode, Credentials::None)
+                    .source(Source::LocalProbe),
+            )
+            .await
+            .expect("free-model activity should be reported");
+        assert_eq!(
+            snapshot.windows[3].used.as_ref().map(Decimal::as_str),
+            Some("100")
+        );
+        assert_eq!(
+            snapshot.windows[8].model.as_deref(),
+            Some("opencode/example-free")
+        );
+        assert_eq!(snapshot.spend[0].amount.as_str(), "0");
+        assert_eq!(snapshot.spend[1].amount.as_str(), "0");
+        assert!(
+            snapshot.balances.is_empty(),
+            "local statistics do not report credits"
+        );
     }
 }
 
