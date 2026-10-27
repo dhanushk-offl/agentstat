@@ -6,7 +6,7 @@
   <a href="https://docs.rs/agentstat"><img src="https://docs.rs/agentstat/badge.svg" alt="docs.rs"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="docs/development.md"><img src="https://img.shields.io/badge/Rust-stable-orange?logo=rust" alt="Rust stable"></a>
-  <a href="#currently-supported"><img src="https://img.shields.io/badge/providers-42_implemented-brightgreen" alt="42 implemented providers"></a>
+  <a href="#currently-supported"><img src="https://img.shields.io/badge/integrations-7_featured-brightgreen" alt="7 featured integrations"></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/dhanushk-offl/agentstat"><img src="https://api.scorecard.dev/projects/github.com/dhanushk-offl/agentstat/badge" alt="OpenSSF Scorecard"></a><br><br>
   <a href="#quick-start">Quick start</a> ·
   <a href="#how-it-works">How it works</a> ·
@@ -27,13 +27,11 @@ to fetch, where to store results, and how to display them.
 - Typed errors and batch fetching with bounded concurrency.
 - Caller-supplied credentials, with explicit opt-in for local files and CLI probes.
 
-**Early release: `0.1.0`.** The catalog tracks **42 implemented**, **60 planned**,
-and **4 out-of-scope** providers. Implemented adapters have synthetic request and
-normalization fixtures. [Help us validate more providers with real accounts](#contributions-wanted).
+**Early release: `0.1.0`.** Implemented adapters have synthetic request and
+normalization fixtures. [Help us validate providers with real accounts](#contributions-wanted).
 HTTP adapters target Linux, macOS, and Windows. Local CLI probes support Unix.
-The table reflects the current source checkout. OpenCode Go, Ollama legacy quotas,
-and optional Zen balance for Go subscribers will be available on crates.io in the
-next release; use a local path dependency to try them now.
+The table reflects the current source checkout; check the released crate's
+features when using crates.io.
 
 ## Quick start
 
@@ -121,7 +119,7 @@ one failed account does not hide another account's result.
 | Use case | Example | What it shows |
 | --- | --- | --- |
 | Model and quota windows from a local CLI login | [model_usage.rs](examples/model_usage.rs) | Read Codex, Claude, or Cursor credentials, then inspect model labels, utilization, limits, and resets |
-| Live usage from your available accounts | [real_usage.rs](examples/real_usage.rs) | Codex, Claude, Cursor, Antigravity, OpenCode Go/Zen, and Ollama with their distinct credential paths |
+| Live usage from your available accounts | [real_usage.rs](examples/real_usage.rs) | Codex, Claude, Cursor, Antigravity, and OpenCode with their distinct credential paths |
 | Caller-supplied token | [fetch.rs](examples/fetch.rs) | Supply a token and serialize the typed snapshot as JSON |
 
 These examples use the public crate API, so their `Client` and `FetchRequest`
@@ -135,18 +133,17 @@ cargo run --features local-files --example model_usage -- codex
 
 ## Try your real account
 
-From this repository, after signing into the corresponding CLI:
+From this repository, with the required credentials or CLI history available:
 
 | Account | Live command | Credentials used |
 | --- | --- | --- |
 | Codex | `cargo run --features local-files --example real_usage -- codex` | Existing local OAuth login |
 | Claude Code | `cargo run --features local-files --example real_usage -- claude` | Existing local OAuth credential file |
 | Cursor / `agent` | `cargo run --features cursor,local-files --example real_usage -- cursor` | Existing CLI `auth.json` |
+| Gemini app | `cargo run --features gemini --example fetch -- gemini` | Existing bearer token in `AGENTSTAT_TOKEN` |
 | Antigravity / `agy` | `cargo run --features antigravity,local-probes --example real_usage -- agy` | Installed CLI login; Unix only |
-| OpenCode CLI / local | `cargo run --features opencode-local --example real_usage -- opencode-cli` | Installed CLI session history; Unix only |
-| OpenCode Zen / Console | `cargo run --features opencode --example real_usage -- opencode` | Console cookie supplied in `OPENCODE_COOKIE` |
+| OpenCode CLI / Console | `cargo run --features opencode-local --example real_usage -- opencode-cli`<br>`cargo run --features opencode --example real_usage -- opencode` | CLI session history (Unix only)<br>Console cookie in `OPENCODE_COOKIE` |
 | OpenCode Go | `cargo run --features opencodego --example real_usage -- go` | Go API key supplied in `OPENCODE_GO_API_KEY` |
-| Ollama Cloud | `cargo run --features ollama --example real_usage -- ollama` | Cloud API key supplied in `OLLAMA_API_KEY` |
 
 The examples fetch live data and return an error if the fetch fails. They never
 substitute demonstration values. OpenCode Zen/Console needs a Console cookie;
@@ -158,9 +155,9 @@ paths, account selection, direct token access, and platform restrictions.
 
 ## Currently supported
 
-**42 providers**, with 41 remote adapters and three optional local probes
-(Antigravity and OpenCode support both paths). Each row describes the data implemented today;
-not every provider exposes hourly or weekly limits.
+The table highlights seven integrations available in the current source checkout.
+For the complete catalog, see [provider coverage](docs/providers.md). Not every
+provider exposes hourly or weekly limits.
 
 The **test coverage** status describes automated coverage. **Extended tests**
 means multiple dedicated provider scenarios beyond the shared request and
@@ -173,45 +170,10 @@ for every provider.
 | Codex | `codex` | Extended tests | Five-hour, weekly, and additional quotas; credits and resets |
 | Claude | `claude` | Extended tests | Subscription quotas, model windows, extra usage; Admin costs |
 | Cursor | `cursor` | Extended tests | CLI or dashboard usage, plan allowances, on-demand spend and resets |
-| Antigravity | `antigravity` | Extended tests | Grouped five-hour/weekly quotas and resets; optional `agy` probe |
 | OpenCode Zen / Console / CLI | `opencode`; optional `opencode-local` | Extended tests | Console Go quotas and Zen PAYG spend/balance; local CLI session tokens and cost |
 | OpenCode Go | `opencodego` | Extended tests | Key-authenticated five-hour, weekly, and monthly percentages and resets |
-| OpenAI | `openai` | Extended tests | Organization costs through the Admin API |
-| ClinePass | `clinepass` | Fixture tests | Five-hour, weekly, and monthly quotas |
 | Gemini app | `gemini` | Fixture tests | Model quota buckets using an existing bearer token |
-| Copilot | `copilot` | Fixture tests | Monthly quota snapshots and reported unlimited allowances |
-| z.ai / GLM | `zai` | Fixture tests | Token, time, and credit quotas |
-| Moonshot / Kimi Open Platform | `moonshot` | Fixture tests | Available, cash, and voucher balances |
-| Langdock | `langdock` | Fixture tests | Session and weekly quotas using a supplied cookie |
-| Ollama | `ollama` | Extended tests | Monthly included credits or legacy session/weekly quotas; purchased balance |
-| Synthetic | `synthetic` | Fixture tests | Quota arrays; five-hour, weekly, and hourly search windows |
-| OpenRouter | `openrouter` | Fixture tests | Key quota; daily, weekly, monthly, and lifetime spend |
-| ElevenLabs | `elevenlabs` | Fixture tests | Character and voice-slot quotas |
-| Warp | `warp` | Fixture tests | Request quota |
-| DeepSeek | `deepseek` | Fixture tests | Balances by currency |
-| Codebuff | `codebuff` | Fixture tests | Credit quota and available balance |
-| Venice | `venice` | Fixture tests | USD and DIEM balances |
-| Poe | `poe` | Fixture tests | Points balance |
-| ClawRouter | `clawrouter` | Fixture tests | Monthly budget quota and reported spend |
-| ZenMux | `zenmux` | Fixture tests | Five-hour and weekly quotas |
-| xAI | `xai` | Fixture tests | Prepaid balance |
-| Nous Portal | `nous` | Fixture tests | Subscription quota and balances |
-| CodeRabbit | `coderabbit` | Fixture tests | Review count and plan through an opt-in Unix CLI probe |
-| GitKraken AI | `gitkraken` | Fixture tests | Personal and organization quotas |
-| DevPass | `devpass` | Fixture tests | Key, plan, and weekly premium quotas |
-| Atlas Cloud | `atlascloud` | Fixture tests | Available balance |
-| Vercel AI Gateway | `vercel` | Fixture tests | Available balance and lifetime spend |
-| xKiro | `xkiro` | Fixture tests | Daily free-token quota |
-| Tavily | `tavily` | Fixture tests | Plan, key, and PAYG quotas |
-| Linkup | `linkup` | Fixture tests | Available balance |
-| Exa | `exa` | Fixture tests | Month-to-date spend |
-| Cosmic AI | `cosmic` | Fixture tests | Numeric input and output quotas |
-| Aerostack | `aerostack` | Fixture tests | Monthly token quota |
-| Sail Research | `sailresearch` | Fixture tests | Reported 30-day spend and available balance |
-| Sofya | `sofya` | Fixture tests | Credit, plan-credit, and purchased-credit balances |
-| fal | `fal` | Fixture tests | Available balance |
-| FLORA | `flora` | Fixture tests | Available balance and monthly spend |
-| Munito | `munito` | Fixture tests | Admin daily/monthly spend and limits |
+| Antigravity | `antigravity` | Extended tests | Grouped five-hour/weekly quotas and resets; optional `agy` probe |
 
 For endpoint details, authentication restrictions, and omitted enrichments, see
 [full provider coverage](docs/providers.md). The
@@ -219,89 +181,7 @@ For endpoint details, authentication restrictions, and omitted enrichments, see
 
 ## Coming soon
 
-**60 integrations are planned.** They have catalog IDs and Cargo features, but no
-working fetch adapter yet. This is a backlog, with no promised release order or
-dates. Contributions are welcome.
-
-<details>
-<summary>View all planned providers</summary>
-
-| Provider | Planned feature ID |
-| --- | --- |
-| Alibaba Coding Plan | `alibaba` |
-| Alibaba Token Plan | `alibabatokenplan` |
-| Qwen Cloud | `qwencloud` |
-| Droid | `factory` |
-| Fireworks | `fireworks` |
-| Devin | `devin` |
-| MiniMax | `minimax` |
-| Manus | `manus` |
-| Kimi | `kimi` |
-| Kilo | `kilo` |
-| Kiro | `kiro` |
-| Vertex AI | `vertexai` |
-| Augment | `augment` |
-| JetBrains AI | `jetbrains` |
-| Amp | `amp` |
-| T3 Chat | `t3chat` |
-| Windsurf | `windsurf` |
-| Zed | `zed` |
-| Perplexity | `perplexity` |
-| Xiaomi MiMo | `mimo` |
-| Sakana AI | `sakana` |
-| Abacus AI | `abacus` |
-| Mistral | `mistral` |
-| DeepInfra | `deepinfra` |
-| Command Code | `commandcode` |
-| Qoder | `qoder` |
-| StepFun | `stepfun` |
-| AWS Bedrock | `bedrock` |
-| Grok | `grok` |
-| Groq | `groq` |
-| LLM Proxy | `llmproxy` |
-| LiteLLM | `litellm` |
-| Bifrost | `bifrost` |
-| Aixy | `aixy` |
-| Deepgram | `deepgram` |
-| Chutes | `chutes` |
-| Neuralwatt | `neuralwatt` |
-| Helmcode | `helmcode` |
-| LongCat | `longcat` |
-| sub2api | `sub2api` |
-| Wayfinder | `wayfinder` |
-| ai& | `aiand` |
-| ZoomMate | `zoommate` |
-| X API | `xapi` |
-| Notion AI | `notion` |
-| IBM Bob | `ibmbob` |
-| Replicate | `replicate` |
-| Hugging Face | `huggingface` |
-| Raycast | `raycast` |
-| v0 | `v0` |
-| TypeSafe | `typesafe` |
-| Charm Hyper | `hyper` |
-| Future AGI | `futureagi` |
-| llmman | `llmman` |
-| Muse (muse.ai) | `museai` |
-| LithosAI | `lithosai` |
-| WorkBuddy | `workbuddy` |
-| TinyApi | `tinyapi` |
-| Parallel | `parallel` |
-| Claude Platform | `claudeplatform` |
-
-</details>
-
-### Outside the current scope
-
-These entries are excluded from the current implementation rather than scheduled
-for release:
-
-| Provider | Feature ID | Reason |
-| --- | --- | --- |
-| Azure OpenAI | `azureopenai` | The identified access probe requires inference. |
-| Doubao | `doubao` | The identified validation path generates a chat completion. |
-| Muse Code | `muse` | The identified authentication path creates an API key. |
-| Pi | `pi` | Local transcript scanning and estimated cost history are outside this crate. |
+See the [roadmap](docs/roadmap.md) for planned integrations and entries outside the current scope.
 
 ## Contributions wanted
 
@@ -345,6 +225,7 @@ check the returned data against your provider's usage page.
 | [Usage guide](docs/usage.md) | Credentials, scopes, live examples, and transport options |
 | [Wiki](https://github.com/dhanushk-offl/agentstat/wiki) | Installation, examples, troubleshooting, issues, and roadmap |
 | [Provider coverage](docs/providers.md) | Data surfaces and restrictions for every provider |
+| [Roadmap](docs/roadmap.md) | Planned integrations and entries outside the current scope |
 | [Development guide](docs/development.md) | Architecture, feature checks, and packaging |
 | [Release guide](docs/releasing.md) | Tag-triggered crates.io publishing and GitHub Releases |
 | [Contributing](CONTRIBUTING.md) | Bug reports, provider adapters, and pull requests |

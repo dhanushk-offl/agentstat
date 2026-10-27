@@ -2,6 +2,11 @@
 
 The catalog tracks implemented, planned, and unsupported integrations. Implemented entries have request and normalization fixtures for the data described below. Enabling a Cargo feature does not implement a planned integration.
 
+Codex, Claude, Cursor, Antigravity, OpenCode, OpenCode Go, OpenAI, and Ollama
+also have extended provider-specific tests. Other implemented integrations have
+shared fixture coverage or local-probe tests. See the [roadmap](roadmap.md) for
+the planned integrations and entries outside the current scope.
+
 | Provider ID | Status | Data surface / reason |
 | --- | --- | --- |
 | `codex` | implemented | OAuth session/weekly/additional windows, credits, monthly credit limits; optional reset-credit count. Native auth.json read is opt-in. No CLI/PAT/web-dashboard fallback. |
