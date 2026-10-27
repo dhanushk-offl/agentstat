@@ -1,10 +1,15 @@
 //! Audited single-response adapters. Specs contain only response paths and public endpoints.
-use super::common::*;
-use crate::*;
+use super::common::{auth, check_source, date, decimal, finish, number, source, text, window};
+use crate::{
+    AgentStatError, Balance, Client, Credentials, Decimal, FetchRequest, ProviderConfig,
+    ProviderId, QuotaLimit, Result, SpendSummary, Unit, UsageSnapshot, WindowKind, transport,
+};
 use reqwest::Method;
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use serde::Deserialize;
 use serde_json::Value;
-use std::{collections::BTreeMap, sync::OnceLock};
+use std::collections::BTreeMap;
+use std::sync::OnceLock;
 #[derive(Debug, Deserialize)]
 pub(super) struct Spec {
     pub url: String,
@@ -41,6 +46,38 @@ pub(super) struct Field {
     #[serde(default)]
     pub negate: bool,
 }
+#[derive(Debug, Default, Deserialize)]
+#[serde(from = "bool")]
+pub(super) enum PercentScale {
+    #[default]
+    Percent,
+    Fraction,
+}
+impl From<bool> for PercentScale {
+    fn from(fraction: bool) -> Self {
+        if fraction {
+            Self::Fraction
+        } else {
+            Self::Percent
+        }
+    }
+}
+#[derive(Debug, Default, Deserialize)]
+#[serde(from = "bool")]
+pub(super) enum NullLimit {
+    #[default]
+    Unknown,
+    Unlimited,
+}
+impl From<bool> for NullLimit {
+    fn from(unlimited: bool) -> Self {
+        if unlimited {
+            Self::Unlimited
+        } else {
+            Self::Unknown
+        }
+    }
+}
 #[derive(Debug, Deserialize)]
 pub(super) struct WindowSpec {
     pub id: String,
@@ -53,9 +90,11 @@ pub(super) struct WindowSpec {
     pub duration: Option<u64>,
     pub kind: Option<WindowKind>,
     #[serde(default)]
-    pub percent_fraction: bool,
+    #[serde(rename = "percent_fraction")]
+    pub percent_scale: PercentScale,
     #[serde(default)]
-    pub null_unlimited: bool,
+    #[serde(rename = "null_unlimited")]
+    pub null_limit: NullLimit,
     pub unlimited_value: Option<String>,
 }
 #[derive(Debug, Deserialize)]
@@ -85,8 +124,8 @@ pub(super) fn pointer<'a>(v: &'a Value, path: &str) -> Option<&'a Value> {
     path.split('|')
         .find_map(|p| v.pointer(p).filter(|v| !v.is_null()))
 }
-fn amount(v: &Value, field: &Option<Field>) -> Option<Decimal> {
-    field.as_ref().and_then(|f| field_amount(v, f))
+fn amount(v: &Value, field: Option<&Field>) -> Option<Decimal> {
+    field.and_then(|f| field_amount(v, f))
 }
 fn field_amount(v: &Value, f: &Field) -> Option<Decimal> {
     let mut n = decimal(pointer(v, &f.path)?)?;
@@ -123,9 +162,9 @@ pub(super) fn parse(r: &FetchRequest, spec: &Spec, v: &Value) -> Result<UsageSna
     s.plan = spec.plan.as_ref().and_then(|p| text(pointer(v, p)?));
     for spec in &spec.windows {
         let (used, mut limit, remaining) = (
-            amount(v, &spec.used),
-            amount(v, &spec.limit),
-            amount(v, &spec.remaining),
+            amount(v, spec.used.as_ref()),
+            amount(v, spec.limit.as_ref()),
+            amount(v, spec.remaining.as_ref()),
         );
         let sentinel = limit.as_ref().is_some_and(|l| {
             spec.unlimited_value
@@ -136,7 +175,7 @@ pub(super) fn parse(r: &FetchRequest, spec: &Spec, v: &Value) -> Result<UsageSna
             limit = None;
         }
         let percent = spec.percent.as_ref().and_then(|p| number(pointer(v, p)?));
-        let unlimited = spec.null_unlimited
+        let unlimited = matches!(spec.null_limit, NullLimit::Unlimited)
             && spec
                 .limit
                 .as_ref()
@@ -161,7 +200,13 @@ pub(super) fn parse(r: &FetchRequest, spec: &Spec, v: &Value) -> Result<UsageSna
             w.limit = QuotaLimit::Unlimited;
         }
         w.utilization_percent = percent
-            .map(|p| if spec.percent_fraction { p * 100.0 } else { p })
+            .map(|p| {
+                if matches!(spec.percent_scale, PercentScale::Fraction) {
+                    p * 100.0
+                } else {
+                    p
+                }
+            })
             .or(w.utilization_percent);
         if w.utilization_percent
             .is_some_and(|n| !n.is_finite() || n < 0.0)
@@ -256,15 +301,15 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest, spec: &Spec) -> Res
     let cli_session =
         r.provider == ProviderId::Codebuff && matches!(r.credentials, Credentials::Bearer(_));
     let mut headers = if cli_session {
-        reqwest::header::HeaderMap::new()
+        HeaderMap::new()
     } else {
         auth(r, name, scheme)?
     };
     for (name, value) in &spec.headers {
         headers.insert(
-            reqwest::header::HeaderName::from_bytes(name.as_bytes())
+            HeaderName::from_bytes(name.as_bytes())
                 .map_err(|_| AgentStatError::Configuration("invalid adapter header"))?,
-            reqwest::header::HeaderValue::from_str(value)
+            HeaderValue::from_str(value)
                 .map_err(|_| AgentStatError::Configuration("invalid adapter header"))?,
         );
     }
@@ -338,7 +383,7 @@ fn resolve_url(r: &FetchRequest, template: &str) -> Result<String> {
     if let ProviderConfig::Gateway { base_url } = &r.config {
         let mut base = reqwest::Url::parse(base_url)
             .map_err(|_| AgentStatError::Configuration("invalid gateway URL"))?;
-        crate::transport::validate_url(&base)?;
+        transport::validate_url(&base)?;
         if base.query().is_some() {
             return Err(AgentStatError::Configuration(
                 "gateway URL cannot contain query parameters",

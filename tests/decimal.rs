@@ -1,3 +1,5 @@
+//! Integration tests for agentstat decimal.
+
 use agentstat::Decimal;
 #[test]
 fn exact_amounts_arithmetic_and_serialization() {

@@ -1,7 +1,15 @@
-use super::common::*;
-use crate::*;
+//! Claude usage adapter.
+
+use super::common::{
+    auth, check_source, date, decimal, finish, number, percent_window, text, window,
+};
+use crate::{
+    AgentStatError, Client, Credentials, FetchRequest, ProviderConfig, Result, Source,
+    SpendSummary, Unit, UsageSnapshot, Warning, WindowKind, transport,
+};
 use reqwest::Method;
 use serde_json::Value;
+use std::collections::HashSet;
 pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnapshot> {
     let (src, headers, url) = match &r.credentials {
         Credentials::Bearer(_) => {
@@ -11,8 +19,8 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
                 ));
             }
             let mut h = auth(r, "authorization", "Bearer ")?;
-            crate::transport::header(&mut h, "anthropic-beta", "oauth-2025-04-20")?;
-            crate::transport::header(&mut h, "user-agent", "claude-code/2.1.0")?;
+            transport::header(&mut h, "anthropic-beta", "oauth-2025-04-20")?;
+            transport::header(&mut h, "user-agent", "claude-code/2.1.0")?;
             (
                 Source::OAuth,
                 h,
@@ -95,7 +103,7 @@ pub(super) fn parse(r: &FetchRequest, src: Source, v: &Value) -> Result<UsageSna
         }
     }
     if let Some(limits) = v["limits"].as_array() {
-        let mut seen = std::collections::HashSet::new();
+        let mut seen = HashSet::new();
         for limit in limits {
             if limit["group"] != "weekly" || limit["kind"] != "weekly_scoped" {
                 continue;

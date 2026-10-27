@@ -1,224 +1,333 @@
 //! Provider IDs, coverage status, and build-time availability.
 use crate::{AgentStatError, Result};
 use serde::{Deserialize, Serialize};
-use std::{fmt, str::FromStr};
+use std::fmt;
+use std::str::FromStr;
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
+/// Identifiers for supported and planned provider integrations.
 pub enum ProviderId {
     #[serde(rename = "codex")]
+    /// Selects the `codex` provider integration.
     Codex,
     #[serde(rename = "openai")]
+    /// Selects the `openai` provider integration.
     OpenAI,
     #[serde(rename = "azureopenai")]
+    /// Selects the `azureopenai` provider integration.
     AzureOpenAI,
     #[serde(rename = "claude")]
+    /// Selects the `claude` provider integration.
     Claude,
     #[serde(rename = "clinepass")]
+    /// Selects the `clinepass` provider integration.
     ClinePass,
     #[serde(rename = "cursor")]
+    /// Selects the `cursor` provider integration.
     Cursor,
     #[serde(rename = "opencode")]
+    /// Selects the `opencode` provider integration.
     OpenCode,
     #[serde(rename = "opencodego")]
+    /// Selects the `opencodego` provider integration.
     OpenCodeGo,
     #[serde(rename = "alibaba")]
+    /// Selects the `alibaba` provider integration.
     Alibaba,
     #[serde(rename = "alibabatokenplan")]
+    /// Selects the `alibabatokenplan` provider integration.
     AlibabaTokenPlan,
     #[serde(rename = "qwencloud")]
+    /// Selects the `qwencloud` provider integration.
     QwenCloud,
     #[serde(rename = "factory")]
+    /// Selects the `factory` provider integration.
     Factory,
     #[serde(rename = "fireworks")]
+    /// Selects the `fireworks` provider integration.
     Fireworks,
     #[serde(rename = "gemini")]
+    /// Selects the `gemini` provider integration.
     Gemini,
     #[serde(rename = "antigravity")]
+    /// Selects the `antigravity` provider integration.
     Antigravity,
     #[serde(rename = "copilot")]
+    /// Selects the `copilot` provider integration.
     Copilot,
     #[serde(rename = "devin")]
+    /// Selects the `devin` provider integration.
     Devin,
     #[serde(rename = "zai")]
+    /// Selects the `zai` provider integration.
     Zai,
     #[serde(rename = "minimax")]
+    /// Selects the `minimax` provider integration.
     Minimax,
     #[serde(rename = "manus")]
+    /// Selects the `manus` provider integration.
     Manus,
     #[serde(rename = "kimi")]
+    /// Selects the `kimi` provider integration.
     Kimi,
     #[serde(rename = "kilo")]
+    /// Selects the `kilo` provider integration.
     Kilo,
     #[serde(rename = "kiro")]
+    /// Selects the `kiro` provider integration.
     Kiro,
     #[serde(rename = "vertexai")]
+    /// Selects the `vertexai` provider integration.
     VertexAI,
     #[serde(rename = "augment")]
+    /// Selects the `augment` provider integration.
     Augment,
     #[serde(rename = "jetbrains")]
+    /// Selects the `jetbrains` provider integration.
     JetBrains,
     #[serde(rename = "moonshot")]
+    /// Selects the `moonshot` provider integration.
     Moonshot,
     #[serde(rename = "amp")]
+    /// Selects the `amp` provider integration.
     Amp,
     #[serde(rename = "t3chat")]
+    /// Selects the `t3chat` provider integration.
     T3Chat,
     #[serde(rename = "langdock")]
+    /// Selects the `langdock` provider integration.
     Langdock,
     #[serde(rename = "ollama")]
+    /// Selects the `ollama` provider integration.
     Ollama,
     #[serde(rename = "synthetic")]
+    /// Selects the `synthetic` provider integration.
     Synthetic,
     #[serde(rename = "openrouter")]
+    /// Selects the `openrouter` provider integration.
     OpenRouter,
     #[serde(rename = "elevenlabs")]
+    /// Selects the `elevenlabs` provider integration.
     ElevenLabs,
     #[serde(rename = "warp")]
+    /// Selects the `warp` provider integration.
     Warp,
     #[serde(rename = "windsurf")]
+    /// Selects the `windsurf` provider integration.
     Windsurf,
     #[serde(rename = "zed")]
+    /// Selects the `zed` provider integration.
     Zed,
     #[serde(rename = "perplexity")]
+    /// Selects the `perplexity` provider integration.
     Perplexity,
     #[serde(rename = "mimo")]
+    /// Selects the `mimo` provider integration.
     Mimo,
     #[serde(rename = "doubao")]
+    /// Selects the `doubao` provider integration.
     Doubao,
     #[serde(rename = "sakana")]
+    /// Selects the `sakana` provider integration.
     Sakana,
     #[serde(rename = "abacus")]
+    /// Selects the `abacus` provider integration.
     Abacus,
     #[serde(rename = "mistral")]
+    /// Selects the `mistral` provider integration.
     Mistral,
     #[serde(rename = "deepseek")]
+    /// Selects the `deepseek` provider integration.
     DeepSeek,
     #[serde(rename = "deepinfra")]
+    /// Selects the `deepinfra` provider integration.
     DeepInfra,
     #[serde(rename = "codebuff")]
+    /// Selects the `codebuff` provider integration.
     Codebuff,
     #[serde(rename = "venice")]
+    /// Selects the `venice` provider integration.
     Venice,
     #[serde(rename = "commandcode")]
+    /// Selects the `commandcode` provider integration.
     CommandCode,
     #[serde(rename = "qoder")]
+    /// Selects the `qoder` provider integration.
     Qoder,
     #[serde(rename = "stepfun")]
+    /// Selects the `stepfun` provider integration.
     Stepfun,
     #[serde(rename = "bedrock")]
+    /// Selects the `bedrock` provider integration.
     Bedrock,
     #[serde(rename = "grok")]
+    /// Selects the `grok` provider integration.
     Grok,
     #[serde(rename = "groq")]
+    /// Selects the `groq` provider integration.
     Groq,
     #[serde(rename = "llmproxy")]
+    /// Selects the `llmproxy` provider integration.
     LLMProxy,
     #[serde(rename = "litellm")]
+    /// Selects the `litellm` provider integration.
     LiteLLM,
     #[serde(rename = "bifrost")]
+    /// Selects the `bifrost` provider integration.
     Bifrost,
     #[serde(rename = "aixy")]
+    /// Selects the `aixy` provider integration.
     Aixy,
     #[serde(rename = "deepgram")]
+    /// Selects the `deepgram` provider integration.
     Deepgram,
     #[serde(rename = "poe")]
+    /// Selects the `poe` provider integration.
     Poe,
     #[serde(rename = "chutes")]
+    /// Selects the `chutes` provider integration.
     Chutes,
     #[serde(rename = "neuralwatt")]
+    /// Selects the `neuralwatt` provider integration.
     NeuralWatt,
     #[serde(rename = "helmcode")]
+    /// Selects the `helmcode` provider integration.
     Helmcode,
     #[serde(rename = "clawrouter")]
+    /// Selects the `clawrouter` provider integration.
     Clawrouter,
     #[serde(rename = "longcat")]
+    /// Selects the `longcat` provider integration.
     LongCat,
     #[serde(rename = "sub2api")]
+    /// Selects the `sub2api` provider integration.
     Sub2API,
     #[serde(rename = "wayfinder")]
+    /// Selects the `wayfinder` provider integration.
     Wayfinder,
     #[serde(rename = "zenmux")]
+    /// Selects the `zenmux` provider integration.
     Zenmux,
     #[serde(rename = "aiand")]
+    /// Selects the `aiand` provider integration.
     Aiand,
     #[serde(rename = "zoommate")]
+    /// Selects the `zoommate` provider integration.
     ZoomMate,
     #[serde(rename = "xai")]
+    /// Selects the `xai` provider integration.
     Xai,
     #[serde(rename = "xapi")]
+    /// Selects the `xapi` provider integration.
     XApi,
     #[serde(rename = "notion")]
+    /// Selects the `notion` provider integration.
     Notion,
     #[serde(rename = "ibmbob")]
+    /// Selects the `ibmbob` provider integration.
     IBMBob,
     #[serde(rename = "nous")]
+    /// Selects the `nous` provider integration.
     Nous,
     #[serde(rename = "muse")]
+    /// Selects the `muse` provider integration.
     Muse,
     #[serde(rename = "coderabbit")]
+    /// Selects the `coderabbit` provider integration.
     CodeRabbit,
     #[serde(rename = "replicate")]
+    /// Selects the `replicate` provider integration.
     Replicate,
     #[serde(rename = "huggingface")]
+    /// Selects the `huggingface` provider integration.
     HuggingFace,
     #[serde(rename = "raycast")]
+    /// Selects the `raycast` provider integration.
     Raycast,
     #[serde(rename = "pi")]
+    /// Selects the `pi` provider integration.
     Pi,
     #[serde(rename = "v0")]
+    /// Selects the `v0` provider integration.
     V0,
     #[serde(rename = "typesafe")]
+    /// Selects the `typesafe` provider integration.
     TypeSafe,
     #[serde(rename = "hyper")]
+    /// Selects the `hyper` provider integration.
     Hyper,
     #[serde(rename = "gitkraken")]
+    /// Selects the `gitkraken` provider integration.
     GitKraken,
     #[serde(rename = "futureagi")]
+    /// Selects the `futureagi` provider integration.
     FutureAGI,
     #[serde(rename = "devpass")]
+    /// Selects the `devpass` provider integration.
     DevPass,
     #[serde(rename = "atlascloud")]
+    /// Selects the `atlascloud` provider integration.
     AtlasCloud,
     #[serde(rename = "vercel")]
+    /// Selects the `vercel` provider integration.
     Vercel,
     #[serde(rename = "llmman")]
+    /// Selects the `llmman` provider integration.
     LLMMan,
     #[serde(rename = "xkiro")]
+    /// Selects the `xkiro` provider integration.
     XKiro,
     #[serde(rename = "museai")]
+    /// Selects the `museai` provider integration.
     MuseAI,
     #[serde(rename = "lithosai")]
+    /// Selects the `lithosai` provider integration.
     LithosAI,
     #[serde(rename = "workbuddy")]
+    /// Selects the `workbuddy` provider integration.
     WorkBuddy,
     #[serde(rename = "tavily")]
+    /// Selects the `tavily` provider integration.
     Tavily,
     #[serde(rename = "linkup")]
+    /// Selects the `linkup` provider integration.
     Linkup,
     #[serde(rename = "tinyapi")]
+    /// Selects the `tinyapi` provider integration.
     TinyApi,
     #[serde(rename = "exa")]
+    /// Selects the `exa` provider integration.
     Exa,
     #[serde(rename = "cosmic")]
+    /// Selects the `cosmic` provider integration.
     Cosmic,
     #[serde(rename = "aerostack")]
+    /// Selects the `aerostack` provider integration.
     Aerostack,
     #[serde(rename = "sailresearch")]
+    /// Selects the `sailresearch` provider integration.
     SailResearch,
     #[serde(rename = "sofya")]
+    /// Selects the `sofya` provider integration.
     Sofya,
     #[serde(rename = "fal")]
+    /// Selects the `fal` provider integration.
     Fal,
     #[serde(rename = "flora")]
+    /// Selects the `flora` provider integration.
     Flora,
     #[serde(rename = "parallel")]
+    /// Selects the `parallel` provider integration.
     Parallel,
     #[serde(rename = "claudeplatform")]
+    /// Selects the `claudeplatform` provider integration.
     ClaudePlatform,
     #[serde(rename = "munito")]
+    /// Selects the `munito` provider integration.
     Munito,
 }
 impl ProviderId {
+    /// Every known provider identifier, including disabled and planned providers.
     pub const ALL: &'static [Self] = &[
         Self::Codex,
         Self::OpenAI,
@@ -327,6 +436,8 @@ impl ProviderId {
         Self::ClaudePlatform,
         Self::Munito,
     ];
+    #[must_use]
+    /// Returns the stable identifier used in configuration and serialization.
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Codex => "codex",
@@ -437,6 +548,8 @@ impl ProviderId {
             Self::Munito => "munito",
         }
     }
+    #[must_use]
+    /// Returns coverage and build availability for this provider.
     pub fn descriptor(self) -> ProviderDescriptor {
         match self {
             Self::Codex => ProviderDescriptor {
@@ -1202,19 +1315,35 @@ impl FromStr for ProviderId {
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
+/// Implementation status of a provider adapter.
 pub enum CoverageStatus {
+    /// An adapter is available.
     Implemented,
+    /// An adapter is planned but unavailable.
     Planned,
+    /// No adapter is planned.
     Unsupported,
 }
 #[derive(Debug, Clone, Serialize)]
+/// Coverage and availability details for one provider.
+#[expect(
+    clippy::exhaustive_structs,
+    reason = "public struct literals are part of the existing crate API"
+)]
 pub struct ProviderDescriptor {
+    /// Stable identifier for this entry.
     pub id: ProviderId,
+    /// Display name of the provider.
     pub name: &'static str,
+    /// Implementation status of this provider.
     pub status: CoverageStatus,
+    /// Whether this provider is enabled in the build.
     pub enabled: bool,
+    /// Explanation for the status.
     pub reason: &'static str,
 }
+#[must_use]
+/// Returns coverage details for all known providers.
 pub fn provider_catalog() -> Vec<ProviderDescriptor> {
     ProviderId::ALL.iter().map(|id| id.descriptor()).collect()
 }

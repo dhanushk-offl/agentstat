@@ -1,0 +1,13 @@
+# Formatting options named by the Google Rust style guide.
+# https://google.github.io/styleguide/rustguide.html#use-the-appropriate-formatting-tool
+
+max_width = 100
+
+# The options below are unstable. Stable rustfmt prints a warning and skips them,
+# so run `cargo +nightly fmt` to apply the full configuration.
+hex_literal_case = "Lower"
+format_macro_matchers = true
+
+# One `use` statement per module, with no nested `::` inside `{..}`.
+# https://google.github.io/styleguide/rustguide.html#a-use-statement-should-import-items-from-one-module
+imports_granularity = "Module"

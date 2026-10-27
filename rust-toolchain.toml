@@ -1,0 +1,5 @@
+# The guide forbids unstable language features, so first-party code builds on stable.
+# Formatting uses nightly rustfmt separately: `cargo +nightly fmt`.
+[toolchain]
+channel = "stable"
+components = ["clippy", "rustfmt"]

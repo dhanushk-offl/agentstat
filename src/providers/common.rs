@@ -1,4 +1,9 @@
-use crate::*;
+//! Shared parsing helpers for provider adapters.
+
+use crate::{
+    AgentStatError, Balance, Credentials, Decimal, FetchRequest, ProviderId, QuotaLimit,
+    QuotaWindow, Result, Source, Unit, UsageSnapshot, WindowKind, transport,
+};
 use chrono::{DateTime, Utc};
 use reqwest::header::HeaderMap;
 use serde_json::Value;
@@ -41,7 +46,7 @@ pub(super) fn auth(
         .filter(|s| !s.trim().is_empty())
         .ok_or(AgentStatError::InvalidCredentials(request.provider))?;
     let mut headers = HeaderMap::new();
-    crate::transport::header(&mut headers, header_name, &format!("{scheme}{value}"))?;
+    transport::header(&mut headers, header_name, &format!("{scheme}{value}"))?;
     Ok(headers)
 }
 pub(super) fn source(request: &FetchRequest) -> Source {

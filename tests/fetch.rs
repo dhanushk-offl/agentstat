@@ -1,3 +1,12 @@
+//! Integration tests for agentstat fetch.
+
+#![expect(
+    clippy::disallowed_types,
+    reason = "test executor state must be shared with cloned clients"
+)]
+
+#[cfg(feature = "local-files")]
+use agentstat::local::CredentialLocation;
 use agentstat::*;
 use futures::future::BoxFuture;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
@@ -14,8 +23,16 @@ use serde_json::Value;
 ))]
 use serde_json::json;
 use std::collections::{HashMap, VecDeque};
+use std::convert::Infallible;
+use std::fmt::Write as _;
+#[cfg(feature = "local-files")]
+use std::fs;
+use std::str::FromStr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
-use std::{str::FromStr, time::Duration};
+use std::time::Duration;
+use std::{future, result, str};
+use tokio::time;
 #[derive(Debug)]
 struct MemoryHttp {
     replies: Mutex<VecDeque<Reply>>,
@@ -28,7 +45,7 @@ struct Reply {
     headers: Vec<(String, String)>,
 }
 impl Reply {
-    fn json(body: Value) -> Self {
+    fn json(body: &Value) -> Self {
         Self {
             status: 200,
             body: body.to_string(),
@@ -50,24 +67,32 @@ impl HttpExecutor for MemoryHttp {
                     .unwrap_or_default()
             );
             for (k, v) in request.headers() {
-                captured.push_str(&format!("{k}: {}\r\n", v.to_str().unwrap()));
+                write!(
+                    &mut captured,
+                    "{k}: {}\r\n",
+                    v.to_str().expect("test header is text")
+                )
+                .expect("writing to a String cannot fail");
             }
             captured.push_str("\r\n");
             if let Some(bytes) = request.body().and_then(reqwest::Body::as_bytes) {
-                captured.push_str(std::str::from_utf8(bytes).unwrap());
+                captured.push_str(str::from_utf8(bytes).expect("test fixture is valid"));
             }
-            self.requests.lock().unwrap().push(captured);
+            self.requests
+                .lock()
+                .expect("test fixture is valid")
+                .push(captured);
             let reply = self
                 .replies
                 .lock()
-                .unwrap()
+                .expect("test fixture is valid")
                 .pop_front()
                 .expect("unexpected extra HTTP request");
             let mut headers = HeaderMap::new();
             for (k, v) in reply.headers {
                 headers.insert(
-                    HeaderName::from_bytes(k.as_bytes()).unwrap(),
-                    HeaderValue::from_str(&v).unwrap(),
+                    HeaderName::from_bytes(k.as_bytes()).expect("test fixture is valid"),
+                    HeaderValue::from_str(&v).expect("test fixture is valid"),
                 );
             }
             Ok(HttpResponse {
@@ -79,15 +104,24 @@ impl HttpExecutor for MemoryHttp {
     }
 }
 struct Server(Arc<MemoryHttp>);
-impl std::future::IntoFuture for Server {
-    type Output = std::result::Result<Vec<String>, std::convert::Infallible>;
-    type IntoFuture = std::future::Ready<Self::Output>;
+impl future::IntoFuture for Server {
+    type Output = result::Result<Vec<String>, Infallible>;
+    type IntoFuture = future::Ready<Self::Output>;
     fn into_future(self) -> Self::IntoFuture {
         assert!(
-            self.0.replies.lock().unwrap().is_empty(),
+            self.0
+                .replies
+                .lock()
+                .expect("test executor state is available")
+                .is_empty(),
             "expected HTTP request was not made"
         );
-        std::future::ready(Ok(self.0.requests.lock().unwrap().clone()))
+        future::ready(Ok(self
+            .0
+            .requests
+            .lock()
+            .expect("test executor state is available")
+            .clone()))
     }
 }
 fn executors() -> &'static Mutex<HashMap<String, Arc<MemoryHttp>>> {
@@ -95,10 +129,10 @@ fn executors() -> &'static Mutex<HashMap<String, Arc<MemoryHttp>>> {
     MAP.get_or_init(Default::default)
 }
 async fn server(replies: Vec<Reply>) -> (String, Server) {
-    static COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    static COUNT: AtomicUsize = AtomicUsize::new(0);
     let url = format!(
         "http://127.0.0.1:{}",
-        10000 + COUNT.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+        10000 + COUNT.fetch_add(1, Ordering::SeqCst)
     );
     let executor = Arc::new(MemoryHttp {
         replies: Mutex::new(replies.into()),
@@ -106,14 +140,21 @@ async fn server(replies: Vec<Reply>) -> (String, Server) {
     });
     executors()
         .lock()
-        .unwrap()
+        .expect("test executor state is available")
         .insert(url.clone(), executor.clone());
     (url, Server(executor))
 }
 fn builder(base: &str, provider: ProviderId) -> ClientBuilder {
     Client::builder()
         .endpoint_override(provider, base)
-        .http_executor(executors().lock().unwrap().get(base).unwrap().clone())
+        .http_executor(
+            executors()
+                .lock()
+                .expect("test executor state is available")
+                .get(base)
+                .expect("test executor state is available")
+                .clone(),
+        )
 }
 fn config(v: &Value) -> ProviderConfig {
     if let Some(id) = v["cosmic"].as_str() {
@@ -138,7 +179,7 @@ fn config(v: &Value) -> ProviderConfig {
 #[cfg(feature = "cursor")]
 #[tokio::test]
 async fn cursor_cli_preserves_vendor_percentages_and_exact_money_separately() {
-    let (base, server) = server(vec![Reply::json(json!({
+    let (base, server) = server(vec![Reply::json(&json!({
         "billingCycleStart": "1790812800000", "billingCycleEnd": "1793491200000",
         "planUsage": {"totalPercentUsed": 10, "apiPercentUsed": 120,
             "totalSpend": "1500.125", "limit": "2000", "remaining": "499.875"},
@@ -187,7 +228,7 @@ async fn cursor_cli_preserves_vendor_percentages_and_exact_money_separately() {
 #[cfg(feature = "cursor")]
 #[tokio::test]
 async fn cursor_cookie_uses_dashboard_and_keeps_missing_limits_unknown() {
-    let (base, server) = server(vec![Reply::json(json!({
+    let (base, server) = server(vec![Reply::json(&json!({
         "membershipType": "pro", "billingCycleEnd": "2026-11-01T00:00:00Z",
         "individualUsage": {"plan": {"enabled":true, "autoPercentUsed":0,
             "used": 100, "limit": null},
@@ -227,7 +268,7 @@ async fn cursor_rejects_empty_usage_and_warns_on_malformed_optional_amounts() {
         json!({}),
         json!({"individualUsage":{"plan":{"totalPercentUsed":null}}}),
     ] {
-        let (base, server) = server(vec![Reply::json(body)]).await;
+        let (base, server) = server(vec![Reply::json(&body)]).await;
         assert!(matches!(
             builder(&base, ProviderId::Cursor)
                 .build()
@@ -241,7 +282,7 @@ async fn cursor_rejects_empty_usage_and_warns_on_malformed_optional_amounts() {
         ));
         server.await.unwrap();
     }
-    let (base, server) = server(vec![Reply::json(json!({
+    let (base, server) = server(vec![Reply::json(&json!({
         "planUsage":{"totalPercentUsed":0,"totalSpend":-1,"limit":100},
         "billingCycleEnd":"invalid"
     }))])
@@ -264,7 +305,7 @@ async fn cursor_rejects_empty_usage_and_warns_on_malformed_optional_amounts() {
 #[cfg(feature = "cursor")]
 #[tokio::test]
 async fn cursor_keeps_overages_and_negative_remaining_allowance() {
-    let (base, server) = server(vec![Reply::json(json!({"planUsage": {
+    let (base, server) = server(vec![Reply::json(&json!({"planUsage": {
         "totalSpend":2500, "limit":2000, "remaining":-500
     }}))])
     .await;
@@ -289,13 +330,13 @@ async fn cursor_keeps_overages_and_negative_remaining_allowance() {
 #[tokio::test]
 async fn cursor_local_cli_token_is_used_by_the_public_fetch_api() {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(
+    fs::write(
         dir.path().join("auth.json"),
         r#"{"accessToken":"local-secret"}"#,
     )
     .unwrap();
     let (base, server) = server(vec![Reply::json(
-        json!({"planUsage":{"totalPercentUsed":15}}),
+        &json!({"planUsage":{"totalPercentUsed":15}}),
     )])
     .await;
     let client = builder(&base, ProviderId::Cursor)
@@ -305,7 +346,7 @@ async fn cursor_local_cli_token_is_used_by_the_public_fetch_api() {
     let request = client
         .load_local_credentials(
             ProviderId::Cursor,
-            agentstat::local::CredentialLocation::Directory(dir.path().into()),
+            CredentialLocation::Directory(dir.path().into()),
         )
         .await
         .unwrap();
@@ -323,7 +364,7 @@ async fn cursor_local_cli_token_is_used_by_the_public_fetch_api() {
 #[cfg(feature = "antigravity")]
 #[tokio::test]
 async fn antigravity_reports_group_windows_without_inventing_token_allowances() {
-    let (base, server) = server(vec![Reply::json(json!({"groups":[
+    let (base, server) = server(vec![Reply::json(&json!({"groups":[
         {"displayName":"Gemini Models", "buckets":[
             {"bucketId":"gemini-5h","remainingFraction":0.75,"resetTime":"2026-10-23T01:00:00Z"},
             {"bucketId":"gemini-weekly","remainingFraction":0,"remainingAmount":"0"},
@@ -373,7 +414,7 @@ async fn antigravity_rejects_empty_duplicate_and_availability_only_data() {
         json!({"buckets":[{"bucketId":"duplicate","remainingFraction":1},
             {"bucketId":"duplicate","remainingFraction":0.5}]}),
     ] {
-        let (base, server) = server(vec![Reply::json(body)]).await;
+        let (base, server) = server(vec![Reply::json(&body)]).await;
         assert!(matches!(
             builder(&base, ProviderId::Antigravity)
                 .build()
@@ -438,7 +479,7 @@ async fn all_implemented_remote_providers_have_request_and_normalization_fixture
         if !provider.descriptor().enabled {
             continue;
         }
-        let (base, server) = server(vec![Reply::json(case["body"].clone())]).await;
+        let (base, server) = server(vec![Reply::json(&case["body"].clone())]).await;
         let client = builder(&base, provider)
             .timeout(Duration::from_secs(2))
             .http_client_builder(reqwest::Client::builder().no_proxy())
@@ -500,9 +541,9 @@ async fn all_implemented_remote_providers_have_request_and_normalization_fixture
         }
         let output = serde_json::to_string(&snapshot).unwrap();
         assert!(!output.contains("test-secret"), "{provider}");
-        let requests = tokio::time::timeout(
+        let requests = time::timeout(
             Duration::from_secs(2),
-            std::future::IntoFuture::into_future(server),
+            future::IntoFuture::into_future(server),
         )
         .await
         .unwrap()
@@ -591,7 +632,7 @@ async fn http_failures_are_typed_redacted_and_never_retried() {
 async fn codex_optional_failure_preserves_primary_and_scope_header() {
     let body = json!({"rate_limit":{"primary_window":{"used_percent":37,"limit_window_seconds":18000,"reset_at":1800000000}}});
     let (base, server) = server(vec![
-        Reply::json(body),
+        Reply::json(&body),
         Reply {
             status: 500,
             body: "private".into(),
@@ -620,7 +661,7 @@ async fn codex_optional_failure_preserves_primary_and_scope_header() {
 #[cfg(feature = "claude")]
 #[tokio::test]
 async fn claude_cookie_source_uses_explicit_organization() {
-    let (base, server) = server(vec![Reply::json(json!({"five_hour":{"utilization":7}}))]).await;
+    let (base, server) = server(vec![Reply::json(&json!({"five_hour":{"utilization":7}}))]).await;
     let client = builder(&base, ProviderId::Claude).build().unwrap();
     let result = client
         .fetch(
@@ -643,7 +684,7 @@ async fn claude_cookie_source_uses_explicit_organization() {
 #[tokio::test]
 async fn claude_admin_costs_use_cents_and_api_key_headers() {
     let (base, server) = server(vec![Reply::json(
-        json!({"data":[{"results":[{"amount":"12.34","currency":"USD"}]}],"has_more":false}),
+        &json!({"data":[{"results":[{"amount":"12.34","currency":"USD"}]}],"has_more":false}),
     )])
     .await;
     let client = builder(&base, ProviderId::Claude).build().unwrap();
@@ -771,7 +812,7 @@ async fn disabled_and_unimplemented_providers_fail_explicitly() {
 #[tokio::test]
 async fn zero_missing_overages_and_malformed_optional_windows_are_preserved() {
     let body = json!({"plan_type":"future-plan","rate_limit":{"primary_window":{"used_percent":125,"limit_window_seconds":18000,"reset_at":1800000000},"secondary_window":"broken"},"additional_rate_limits":[null,{"rate_limit":{"primary_window":{"used_percent":0}}}],"credits":{"balance":"0"}});
-    let (base, server) = server(vec![Reply::json(body)]).await;
+    let (base, server) = server(vec![Reply::json(&body)]).await;
     let s = builder(&base, ProviderId::Codex)
         .build()
         .unwrap()
@@ -798,7 +839,7 @@ async fn batch_preserves_order_and_account_failures() {
             body: String::new(),
             headers: vec![],
         },
-        Reply::json(json!({"rate_limit":{"primary_window":{"used_percent":20}},"account_id":"b"})),
+        Reply::json(&json!({"rate_limit":{"primary_window":{"used_percent":20}},"account_id":"b"})),
     ])
     .await;
     let client = builder(&base, ProviderId::Codex)
@@ -823,7 +864,7 @@ async fn batch_preserves_order_and_account_failures() {
 #[tokio::test]
 async fn account_mismatch_fails_instead_of_relabeling_data() {
     let (base, server) = server(vec![Reply::json(
-        json!({"account_id":"b","rate_limit":{"primary_window":{"used_percent":20}}}),
+        &json!({"account_id":"b","rate_limit":{"primary_window":{"used_percent":20}}}),
     )])
     .await;
     let client = builder(&base, ProviderId::Codex).build().unwrap();
@@ -844,7 +885,7 @@ struct Hanging;
 #[cfg(feature = "codex")]
 impl HttpExecutor for Hanging {
     fn execute(&self, _: reqwest::Request) -> BoxFuture<'_, Result<HttpResponse>> {
-        Box::pin(std::future::pending())
+        Box::pin(future::pending())
     }
 }
 #[cfg(feature = "codex")]
@@ -868,7 +909,6 @@ async fn request_deadline_cancels_transport() {
 #[cfg(feature = "codex")]
 #[tokio::test]
 async fn batch_concurrency_is_bounded() {
-    use std::sync::atomic::{AtomicUsize, Ordering};
     #[derive(Debug)]
     struct Concurrent {
         active: AtomicUsize,
@@ -879,7 +919,7 @@ async fn batch_concurrency_is_bounded() {
             Box::pin(async move {
                 let active = self.active.fetch_add(1, Ordering::SeqCst) + 1;
                 self.peak.fetch_max(active, Ordering::SeqCst);
-                tokio::time::sleep(Duration::from_millis(5)).await;
+                time::sleep(Duration::from_millis(5)).await;
                 self.active.fetch_sub(1, Ordering::SeqCst);
                 Ok(HttpResponse {
                     status: 200,
@@ -903,13 +943,13 @@ async fn batch_concurrency_is_bounded() {
             (0..7).map(|_| FetchRequest::new(ProviderId::Codex, Credentials::bearer("private"))),
         )
         .await;
-    assert!(results.iter().all(std::result::Result::is_ok));
+    assert!(results.iter().all(result::Result::is_ok));
     assert_eq!(executor.peak.load(Ordering::SeqCst), 2);
 }
 #[cfg(feature = "synthetic")]
 #[tokio::test]
 async fn synthetic_named_quota_slots_have_real_durations() {
-    let (base,server)=server(vec![Reply::json(json!({"rollingFiveHourLimit":{"requests":25,"limit":100},"weeklyTokenLimit":{"used":40,"limit":100},"search":{"hourly":{"used":2,"limit":10}}}))]).await;
+    let (base,server)=server(vec![Reply::json(&json!({"rollingFiveHourLimit":{"requests":25,"limit":100},"weeklyTokenLimit":{"used":40,"limit":100},"search":{"hourly":{"used":2,"limit":10}}}))]).await;
     let result = builder(&base, ProviderId::Synthetic)
         .build()
         .unwrap()
@@ -932,7 +972,7 @@ async fn synthetic_named_quota_slots_have_real_durations() {
 #[cfg(feature = "openai")]
 #[tokio::test]
 async fn admin_pagination_does_not_merge_currencies_or_replay_cursors() {
-    let (base,server)=server(vec![Reply::json(json!({"data":[{"results":[{"amount":{"value":"0.1","currency":"usd"}}]}],"has_more":true,"next_page":"page-two"})),Reply::json(json!({"data":[{"results":[{"amount":{"value":"0.2","currency":"usd"}},{"amount":{"value":"1.25","currency":"eur"}}]}],"has_more":false}))]).await;
+    let (base,server)=server(vec![Reply::json(&json!({"data":[{"results":[{"amount":{"value":"0.1","currency":"usd"}}]}],"has_more":true,"next_page":"page-two"})),Reply::json(&json!({"data":[{"results":[{"amount":{"value":"0.2","currency":"usd"}},{"amount":{"value":"1.25","currency":"eur"}}]}],"has_more":false}))]).await;
     let result = builder(&base, ProviderId::OpenAI)
         .build()
         .unwrap()
@@ -968,7 +1008,7 @@ async fn admin_rejects_missing_or_malformed_pagination_flags() {
         if let Some(flag) = flag {
             response["has_more"] = flag;
         }
-        let (base, server) = server(vec![Reply::json(response)]).await;
+        let (base, server) = server(vec![Reply::json(&response)]).await;
         let result = builder(&base, ProviderId::OpenAI)
             .build()
             .unwrap()
@@ -985,7 +1025,7 @@ async fn admin_rejects_missing_or_malformed_pagination_flags() {
 #[cfg(feature = "codebuff")]
 #[tokio::test]
 async fn codebuff_api_key_keeps_bearer_header_request() {
-    let (base, server) = server(vec![Reply::json(json!({"usage": 25, "quota": 100}))]).await;
+    let (base, server) = server(vec![Reply::json(&json!({"usage": 25, "quota": 100}))]).await;
     let snapshot = builder(&base, ProviderId::Codebuff)
         .build()
         .unwrap()
@@ -1005,7 +1045,7 @@ async fn codebuff_api_key_keeps_bearer_header_request() {
 #[cfg(feature = "ollama")]
 #[tokio::test]
 async fn ollama_legacy_limits_preserve_remaining_percent_and_reset_times() {
-    let (base, server) = server(vec![Reply::json(json!({
+    let (base, server) = server(vec![Reply::json(&json!({
         "included": {
             "session": {"remaining_percent": 75, "resets_at": "2026-10-23T07:00:00Z"},
             "weekly": {"remaining_percent": 40, "resets_at": "2026-10-29T00:00:00Z"}
@@ -1044,7 +1084,7 @@ async fn ollama_legacy_limits_preserve_remaining_percent_and_reset_times() {
 #[cfg(feature = "ollama")]
 #[tokio::test]
 async fn ollama_rejects_malformed_legacy_meter() {
-    let (base, server) = server(vec![Reply::json(json!({
+    let (base, server) = server(vec![Reply::json(&json!({
         "included": {
             "session": {"remaining_percent": 110, "resets_at": "2026-10-23T07:00:00Z"},
             "weekly": {"remaining_percent": 40, "resets_at": "2026-10-29T00:00:00Z"}
@@ -1085,7 +1125,7 @@ async fn mismatched_typed_provider_configuration_is_rejected_before_fetch() {
 #[cfg(feature = "opencodego")]
 #[tokio::test]
 async fn opencode_go_reads_key_authenticated_quota_windows() {
-    let (base, server) = server(vec![Reply::json(json!({"usage": {
+    let (base, server) = server(vec![Reply::json(&json!({"usage": {
         "rolling": {"status": "ok", "percent": 12, "resetsAt": "2026-10-23T03:00:00Z"},
         "weekly": {"status": "rate-limited", "percent": 100, "resetsAt": "2026-10-29T00:00:00Z"},
         "monthly": {"status": "ok", "percent": 8, "resetsAt": "2026-11-01T00:00:00Z"}
@@ -1125,7 +1165,7 @@ async fn opencode_go_rejects_missing_or_invalid_windows() {
             "monthly": {"status": "ok", "percent": 10, "resetsAt": "2026-11-01T00:00:00Z"}
         }}),
     ] {
-        let (base, server) = server(vec![Reply::json(body)]).await;
+        let (base, server) = server(vec![Reply::json(&body)]).await;
         assert!(matches!(
             builder(&base, ProviderId::OpenCodeGo)
                 .build()
@@ -1163,22 +1203,22 @@ mod opencode {
             "month":{"usedMicroCents":"600000000","limitMicroCents":"6000000000"}
         }}})
     }
-    fn payg_replies(balance: Value, total: Value) -> Vec<Reply> {
+    fn payg_replies(balance: &Value, total: &Value) -> Vec<Reply> {
         vec![
-            Reply::json(Value::Null),
-            Reply::json(json!({"id":"wrk_A","hasGoSubscription":false})),
+            Reply::json(&Value::Null),
+            Reply::json(&json!({"id":"wrk_A","hasGoSubscription":false})),
             Reply::json(
-                json!({"mode":"pay-as-you-go","billingMode":"prepaid","balanceMicroCents":balance}),
+                &json!({"mode":"pay-as-you-go","billingMode":"prepaid","balanceMicroCents":balance}),
             ),
-            Reply::json(json!({"totalCostMicroCents":total})),
+            Reply::json(&json!({"totalCostMicroCents":total})),
         ]
     }
 
     #[tokio::test]
     async fn discovers_unique_workspace_and_scopes_all_usage_requests() {
         let (base, server) = server(vec![
-            Reply::json(json!([{"id":"wrk_A"}])),
-            Reply::json(quota()),
+            Reply::json(&json!([{"id":"wrk_A"}])),
+            Reply::json(&quota()),
         ])
         .await;
         let snapshot = builder(&base, ProviderId::OpenCode)
@@ -1227,8 +1267,8 @@ mod opencode {
     #[tokio::test]
     async fn go_subscription_can_include_zen_prepaid_balance() {
         let (base, server) = server(vec![
-            Reply::json(quota()),
-            Reply::json(json!({
+            Reply::json(&quota()),
+            Reply::json(&json!({
                 "mode": "pay-as-you-go",
                 "billingMode": "prepaid",
                 "balanceMicroCents": "1250000000"
@@ -1253,7 +1293,7 @@ mod opencode {
     #[tokio::test]
     async fn optional_zen_balance_failure_keeps_go_quota() {
         let (base, server) = server(vec![
-            Reply::json(quota()),
+            Reply::json(&quota()),
             Reply {
                 status: 503,
                 body: "unavailable".into(),
@@ -1281,7 +1321,7 @@ mod opencode {
             json!([{"id":"wrk_A"},{"id":"org_B"}]),
             json!({"error":"unexpected"}),
         ] {
-            let (base, server) = server(vec![Reply::json(body)]).await;
+            let (base, server) = server(vec![Reply::json(&body)]).await;
             let result = builder(&base, ProviderId::OpenCode)
                 .build()
                 .unwrap()
@@ -1297,7 +1337,7 @@ mod opencode {
 
     #[tokio::test]
     async fn explicit_workspace_skips_discovery_and_invalid_selection_fails_locally() {
-        let (base, server) = server(vec![Reply::json(quota())]).await;
+        let (base, server) = server(vec![Reply::json(&quota())]).await;
         builder(&base, ProviderId::OpenCode)
             .build()
             .unwrap()
@@ -1341,7 +1381,7 @@ mod opencode {
     #[tokio::test]
     async fn missing_optional_meters_stay_missing_and_overages_survive() {
         let body = json!({"access":{"meters":{"fiveHour":{"usedMicroCents":"1500000000","limitMicroCents":"1200000000"},"week":{"usedMicroCents":"invalid","limitMicroCents":"100"}}}});
-        let (base, server) = server(vec![Reply::json(body)]).await;
+        let (base, server) = server(vec![Reply::json(&body)]).await;
         let snapshot = builder(&base, ProviderId::OpenCode)
             .build()
             .unwrap()
@@ -1362,7 +1402,7 @@ mod opencode {
     #[tokio::test]
     async fn zero_limits_do_not_become_unlimited() {
         let (base, server) = server(vec![Reply::json(
-            json!({"access":{"meters":{"fiveHour":{"usedMicroCents":0,"limitMicroCents":"0"}}}}),
+            &json!({"access":{"meters":{"fiveHour":{"usedMicroCents":0,"limitMicroCents":"0"}}}}),
         )])
         .await;
         let snapshot = builder(&base, ProviderId::OpenCode)
@@ -1381,7 +1421,7 @@ mod opencode {
 
     #[tokio::test]
     async fn confirmed_payg_preserves_exact_spend_balance_and_workspace() {
-        let (base, server) = server(payg_replies(json!("1250000000"), json!("325000000"))).await;
+        let (base, server) = server(payg_replies(&json!("1250000000"), &json!("325000000"))).await;
         let snapshot = builder(&base, ProviderId::OpenCode)
             .build()
             .unwrap()
@@ -1404,11 +1444,8 @@ mod opencode {
     #[tokio::test]
     async fn optional_balance_failure_preserves_spend_and_negative_balance_is_valid() {
         for balance in [Value::Null, json!("invalid"), json!("-1250000000")] {
-            let (base, server) = server(payg_replies(
-                balance.clone(),
-                json!("900719925474099312345678"),
-            ))
-            .await;
+            let (base, server) =
+                server(payg_replies(&balance, &json!("900719925474099312345678"))).await;
             let snapshot = builder(&base, ProviderId::OpenCode)
                 .build()
                 .unwrap()
@@ -1437,7 +1474,7 @@ mod opencode {
             json!({"access":false}),
             json!({"access":{"meters":{"fiveHour":{"usedMicroCents":true,"limitMicroCents":100}}}}),
         ] {
-            let (base, server) = server(vec![Reply::json(body)]).await;
+            let (base, server) = server(vec![Reply::json(&body)]).await;
             assert!(matches!(
                 builder(&base, ProviderId::OpenCode)
                     .build()
@@ -1454,8 +1491,8 @@ mod opencode {
             json!({}),
         ] {
             let (base, server) = server(vec![
-                Reply::json(json!({"access":null})),
-                Reply::json(organization),
+                Reply::json(&json!({"access":null})),
+                Reply::json(&organization),
             ])
             .await;
             assert!(matches!(
@@ -1481,7 +1518,7 @@ mod opencode {
             json!("-1"),
             json!("1.5"),
         ] {
-            let (base, server) = server(payg_replies(json!("0"), total)).await;
+            let (base, server) = server(payg_replies(&json!("0"), &total)).await;
             assert!(matches!(
                 builder(&base, ProviderId::OpenCode)
                     .build()

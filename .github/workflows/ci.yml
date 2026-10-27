@@ -32,7 +32,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: cargo fmt --check
       - run: cargo test --locked --all-features
       - run: cargo test --locked --no-default-features
       - run: cargo test --locked
@@ -42,6 +41,32 @@ jobs:
       - run: cargo package --locked --all-features
       - run: python scripts/check_coverage.py
       - run: python scripts/test_release.py
+
+  format:
+    name: Nightly format
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+      - run: cargo +nightly fmt --check
+
+  deny:
+    name: Dependency bans
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+      - run: cargo deny check bans
 
   individual-features:
     name: Individual features
@@ -61,7 +86,7 @@ jobs:
   checks:
     name: Checks passed
     if: ${{ always() }}
-    needs: [test, individual-features]
+    needs: [test, individual-features, format, deny]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -69,6 +94,10 @@ jobs:
         env:
           TEST_RESULT: ${{ needs.test.result }}
           FEATURES_RESULT: ${{ needs.individual-features.result }}
+          FORMAT_RESULT: ${{ needs.format.result }}
+          DENY_RESULT: ${{ needs.deny.result }}
         run: |
           test "$TEST_RESULT" = success
           test "$FEATURES_RESULT" = success
+          test "$FORMAT_RESULT" = success
+          test "$DENY_RESULT" = success

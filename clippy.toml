@@ -1,0 +1,34 @@
+# Clippy configuration for the Google Rust style guide.
+# Guide: https://google.github.io/styleguide/rustguide.html
+
+# Apply API lints (wrong_self_convention, ref_option, needless_pass_by_value, ...) to public
+# items too. The guide's API rules matter most at public boundaries. An established library
+# that cannot take breaking changes can flip this back to `true`.
+avoid-breaking-exported-api = false
+
+# #prefer-enum-over-bool-in-apis: flag two or more bool parameters or fields.
+max-fn-params-bools = 1
+max-struct-bools = 1
+
+# #qualify-calls-to-top-level-functions-with-a-module-name: `module::function()` is fine,
+# `crate::module::function()` and `regex::Regex::new()` inline are not.
+absolute-paths-max-segments = 2
+
+# Tests may unwrap. #reporting-errors: "Tests may use panics for assertions."
+allow-unwrap-in-tests = true
+
+disallowed-types = [
+    # #avoid-rc-and-arc: shared ownership is a review-time judgment call. Opt in per module
+    # with `#![expect(clippy::disallowed_types, reason = "...")]` so the reason is on record.
+    { path = "std::rc::Rc", reason = "prefer unique ownership and borrowing (guide: avoid Rc and Arc)" },
+    { path = "std::sync::Arc", reason = "prefer unique ownership and borrowing (guide: avoid Rc and Arc)" },
+]
+
+disallowed-methods = [
+    # #dont-call-paniccatch_unwind
+    { path = "std::panic::catch_unwind", reason = "only allowed as defense in depth (guide: don't call panic::catch_unwind)" },
+    # #handling-poison: never reach inside a poisoned mutex.
+    { path = "std::sync::PoisonError::into_inner", reason = "never reach inside a poisoned lock (guide: handling poison)" },
+    { path = "std::sync::PoisonError::get_ref", reason = "never reach inside a poisoned lock (guide: handling poison)" },
+    { path = "std::sync::PoisonError::get_mut", reason = "never reach inside a poisoned lock (guide: handling poison)" },
+]
