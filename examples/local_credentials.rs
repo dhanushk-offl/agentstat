@@ -1,7 +1,13 @@
+//! Example for agentstat local credentials.
+
+#[cfg(feature = "local-files")]
+use std::error::Error;
+
 #[cfg(feature = "local-files")]
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use agentstat::{Client, ProviderId, local::CredentialLocation};
+async fn main() -> Result<(), Box<dyn Error>> {
+    use agentstat::local::CredentialLocation;
+    use agentstat::{Client, ProviderId};
     let client = Client::builder().allow_local_files(true).build()?;
     let request = client
         .load_local_credentials(ProviderId::Codex, CredentialLocation::Native)

@@ -1,5 +1,12 @@
-use super::common::*;
-use crate::*;
+//! Cursor usage adapter.
+
+use super::common::{
+    auth, check_source, date, decimal, finish, number, percent_window, text, window,
+};
+use crate::{
+    AgentStatError, Client, Credentials, Decimal, FetchRequest, ProviderConfig, Result, Source,
+    SpendSummary, Unit, UsageSnapshot, Warning, WindowKind, transport,
+};
 use reqwest::Method;
 use serde_json::{Value, json};
 
@@ -31,7 +38,7 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
     check_source(r, source)?;
     let mut headers = auth(r, header, scheme)?;
     if source == Source::OAuth {
-        crate::transport::header(&mut headers, "connect-protocol-version", "1")?;
+        transport::header(&mut headers, "connect-protocol-version", "1")?;
     }
     let body = client
         .transport

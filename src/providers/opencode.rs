@@ -1,9 +1,14 @@
-//! OpenCode Console read-only JSON endpoints. Legacy server-function scraping is excluded.
-use super::common::*;
-use crate::*;
+//! `OpenCode` Console read-only JSON endpoints. Legacy server-function scraping is excluded.
+use super::common::{auth, check_source, date, finish, window};
+use crate::{
+    AgentStatError, Balance, Client, Credentials, Decimal, FetchRequest, ProviderConfig, Result,
+    Source, SpendSummary, Unit, UsageSnapshot, Warning, WindowKind, transport,
+};
 use chrono::{Duration, Utc};
-use reqwest::{Method, header::HeaderMap};
+use reqwest::Method;
+use reqwest::header::HeaderMap;
 use serde_json::Value;
+use std::collections::BTreeSet;
 
 const BASE: &str = "https://opencode.ai/console/api";
 
@@ -18,8 +23,8 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
         ));
     }
     let mut headers = auth(r, "cookie", "")?;
-    crate::transport::header(&mut headers, "origin", "https://opencode.ai")?;
-    crate::transport::header(&mut headers, "referer", "https://opencode.ai/console")?;
+    transport::header(&mut headers, "origin", "https://opencode.ai")?;
+    transport::header(&mut headers, "referer", "https://opencode.ai/console")?;
     let workspace = match &r.scope.workspace_id {
         Some(id) if valid_workspace(id) => id.clone(),
         Some(_) => {
@@ -32,7 +37,7 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
             let rows = rows.as_array().ok_or(AgentStatError::InvalidResponse(
                 "expected OpenCode workspace list",
             ))?;
-            let ids: std::collections::BTreeSet<&str> = rows
+            let ids: BTreeSet<&str> = rows
                 .iter()
                 .filter_map(|row| row["id"].as_str().filter(|id| valid_workspace(id)))
                 .collect();
@@ -51,7 +56,7 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
             }
         }
     };
-    crate::transport::header(&mut headers, "x-org-id", &workspace)?;
+    transport::header(&mut headers, "x-org-id", &workspace)?;
     let mut snapshot = UsageSnapshot::new(r, Source::Web);
     snapshot.scope.workspace_id = Some(workspace.clone());
     let status = get(client, r, &headers, "/go/status").await?;

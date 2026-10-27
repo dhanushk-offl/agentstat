@@ -1,3 +1,5 @@
+//! Provider request validation and adapter dispatch.
+
 mod admin;
 mod antigravity;
 mod claude;
@@ -9,7 +11,18 @@ mod declarative;
 mod ollama;
 mod opencode;
 mod opencodego;
-use crate::*;
+#[cfg(any(feature = "local-files", feature = "local-probes"))]
+use crate::Source;
+#[cfg(feature = "local-files")]
+use crate::local;
+#[cfg(feature = "local-probes")]
+use crate::probe;
+use crate::{
+    AgentStatError, Client, CoverageStatus, Credentials, FetchRequest, ProviderConfig, ProviderId,
+    Result, UsageSnapshot,
+};
+#[cfg(all(feature = "local-probes", unix))]
+use crate::{Decimal, QuotaWindow, Unit};
 pub(crate) async fn fetch(client: &Client, request: &FetchRequest) -> Result<UsageSnapshot> {
     if [
         &request.scope.account_id,
@@ -81,11 +94,11 @@ pub(crate) async fn fetch(client: &Client, request: &FetchRequest) -> Result<Usa
     }
     #[cfg(feature = "local-files")]
     if request.source == Source::LocalFile {
-        return crate::local::fetch(client, request).await;
+        return local::fetch(client, request).await;
     }
     #[cfg(feature = "local-probes")]
     if request.source == Source::LocalProbe || request.provider == ProviderId::CodeRabbit {
-        return crate::probe::fetch(client, request).await;
+        return probe::fetch(client, request).await;
     }
     match request.provider {
         ProviderId::Codex => codex::fetch(client, request).await,

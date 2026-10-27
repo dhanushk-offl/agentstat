@@ -1,13 +1,19 @@
 //! Inspect provider-reported model and quota windows using a local CLI login.
-//! Run: cargo run --features local-files --example model_usage -- codex
-//! Cursor: cargo run --features cursor,local-files --example model_usage -- cursor
+//! Run: cargo run --features local-files --example `model_usage` -- codex
+//! Cursor: cargo run --features cursor,local-files --example `model_usage` -- cursor
+
+#[cfg(feature = "local-files")]
+use std::env;
+#[cfg(feature = "local-files")]
+use std::error::Error;
 
 #[cfg(feature = "local-files")]
 #[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use agentstat::{Client, ProviderId, QuotaLimit, local::CredentialLocation};
+async fn main() -> Result<(), Box<dyn Error>> {
+    use agentstat::local::CredentialLocation;
+    use agentstat::{Client, ProviderId, QuotaLimit};
 
-    let provider = match std::env::args().nth(1).as_deref().unwrap_or("codex") {
+    let provider = match env::args().nth(1).as_deref().unwrap_or("codex") {
         "codex" => ProviderId::Codex,
         "claude" => ProviderId::Claude,
         "cursor" => ProviderId::Cursor,

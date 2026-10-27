@@ -1,23 +1,41 @@
 //! Explicit local credential access. No browser, keychain, login, or token refresh operations.
-use crate::*;
+use crate::{
+    AgentStatError, Client, CredentialSource, Credentials, FetchRequest, ProviderId, Result,
+    UsageSnapshot, providers,
+};
+use chrono::Utc;
 use serde_json::Value;
+use std::env;
 use std::path::{Path, PathBuf};
+use tokio::fs;
 use tokio::io::AsyncReadExt;
 
 #[derive(Debug, Clone, Default)]
+/// Location of a provider's existing local credential file.
+#[expect(
+    clippy::exhaustive_enums,
+    reason = "the published location choices remain stable for downstream matches"
+)]
 pub enum CredentialLocation {
     #[default]
+    /// Uses the provider's standard config directory.
     Native,
+    /// Reads from a caller-supplied directory.
     Directory(PathBuf),
 }
 impl Client {
     /// Read a known provider credential file. Native resolution happens only on this explicit call.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if local access is disabled, the file is unavailable or invalid,
+    /// or its credentials are incompatible with the selected provider.
     pub async fn load_local_credentials(
         &self,
         provider: ProviderId,
         location: CredentialLocation,
     ) -> Result<FetchRequest> {
-        if !self.local_files {
+        if !self.local_access.files() {
             return Err(AgentStatError::LocalAccessDisabled);
         }
         let path = match location {
@@ -31,18 +49,18 @@ impl Client {
                     ProviderId::Claude => ("CLAUDE_CONFIG_DIR", ".claude"),
                     _ => return Err(AgentStatError::UnsupportedSource(provider)),
                 };
-                let home = std::env::var_os(variable)
+                let home = env::var_os(variable)
                     .filter(|v| !v.is_empty())
                     .map(PathBuf::from)
                     .or_else(|| {
-                        std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
+                        env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
                             .map(|p| PathBuf::from(p).join(fallback))
                     })
                     .ok_or(AgentStatError::LocalRead)?;
                 credential_path(provider, &home)?
             }
         };
-        let file = tokio::fs::File::open(path)
+        let file = fs::File::open(path)
             .await
             .map_err(|_| AgentStatError::LocalRead)?;
         let mut bytes = zeroize::Zeroizing::new(Vec::new());
@@ -63,7 +81,7 @@ impl Client {
                 let auth = &data["claudeAiOauth"];
                 if auth["expiresAt"]
                     .as_i64()
-                    .is_some_and(|n| n <= chrono::Utc::now().timestamp_millis())
+                    .is_some_and(|n| n <= Utc::now().timestamp_millis())
                 {
                     return Err(AgentStatError::Authentication);
                 }
@@ -92,13 +110,13 @@ fn credential_path(provider: ProviderId, home: &Path) -> Result<PathBuf> {
 
 fn cursor_directory() -> Result<PathBuf> {
     let home = || {
-        std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
+        env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
             .filter(|v| !v.is_empty())
             .map(PathBuf::from)
             .ok_or(AgentStatError::LocalRead)
     };
     if cfg!(windows) {
-        let root = std::env::var_os("APPDATA")
+        let root = env::var_os("APPDATA")
             .filter(|v| !v.is_empty())
             .map(PathBuf::from)
             .map(Ok)
@@ -107,7 +125,7 @@ fn cursor_directory() -> Result<PathBuf> {
     } else if cfg!(target_os = "macos") {
         Ok(home()?.join(".cursor"))
     } else {
-        let root = std::env::var_os("XDG_CONFIG_HOME")
+        let root = env::var_os("XDG_CONFIG_HOME")
             .filter(|v| !v.is_empty())
             .map(PathBuf::from)
             .map(Ok)
@@ -144,9 +162,9 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
     request.include_optional = r.include_optional;
     request.deadline = r.deadline;
     let mut result = match r.provider {
-        ProviderId::Codex => crate::providers::fetch_remote_codex(client, &request).await,
-        ProviderId::Claude => crate::providers::fetch_remote_claude(client, &request).await,
-        ProviderId::Cursor => crate::providers::fetch_remote_cursor(client, &request).await,
+        ProviderId::Codex => providers::fetch_remote_codex(client, &request).await,
+        ProviderId::Claude => providers::fetch_remote_claude(client, &request).await,
+        ProviderId::Cursor => providers::fetch_remote_cursor(client, &request).await,
         _ => Err(AgentStatError::UnsupportedSource(r.provider)),
     }?;
     result.credential_source = CredentialSource::LocalFile;

@@ -142,3 +142,106 @@ tempfile = "3"
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.29", optional = true, features = ["signal", "process"] }
+
+
+# Google Rust Style Guide lints (unofficial kit): https://daniakash.github.io/Google-Rust-Style-Guide/
+# Paste into your crate's Cargo.toml.
+
+[lints.rust]
+# https://google.github.io/styleguide/rustguide.html#when-and-how-to-write-documentation
+missing_docs = "warn"
+# https://google.github.io/styleguide/rustguide.html#unsafe-code
+unsafe_op_in_unsafe_fn = "warn"
+# https://google.github.io/styleguide/rustguide.html#no-unstable-features
+unstable_features = "deny"
+
+[lints.rustdoc]
+# https://google.github.io/styleguide/rustguide.html#when-and-how-to-write-documentation
+broken_intra_doc_links = "warn"
+
+[lints.clippy]
+# Clippy's default groups (correctness, suspicious, style, complexity, perf) stay on.
+# Pedantic, restriction and nursery lints are opted into one at a time below.
+all = { level = "warn", priority = -1 }
+
+# ---- Code organization ----
+# https://google.github.io/styleguide/rustguide.html#dont-use-glob-imports
+wildcard_imports = "warn"
+# https://google.github.io/styleguide/rustguide.html#qualify-calls-to-top-level-functions-with-a-module-name and
+# https://google.github.io/styleguide/rustguide.html#type-names-should-be-imported-and-used-unqualified
+absolute_paths = "warn"
+
+# ---- Code formatting and aesthetics ----
+# https://google.github.io/styleguide/rustguide.html#use-the-appropriate-formatting-tool (escape invisible characters in literals)
+invisible_characters = "deny"
+
+# ---- Ownership and borrowing ----
+# https://google.github.io/styleguide/rustguide.html#prefer-borrows-over-deep-copies
+redundant_clone = "warn"
+implicit_clone = "warn"
+needless_pass_by_value = "warn"
+
+# ---- Function inputs and outputs ----
+# https://google.github.io/styleguide/rustguide.html#accept-flexible-references-for-immutable-data
+ptr_arg = "warn"
+borrowed_box = "warn"
+ref_option = "warn"
+# https://google.github.io/styleguide/rustguide.html#prefer-enum-over-bool-in-apis (threshold in clippy.toml)
+fn_params_excessive_bools = "warn"
+struct_excessive_bools = "warn"
+
+# ---- Traits ----
+# https://google.github.io/styleguide/rustguide.html#implement-known-standard-library-traits-instead-of-custom-methods
+should_implement_trait = "warn"
+inherent_to_string = "warn"
+from_over_into = "warn"
+# https://google.github.io/styleguide/rustguide.html#use-derive-if-possible
+derivable_impls = "warn"
+expl_impl_clone_on_copy = "warn"
+# https://google.github.io/styleguide/rustguide.html#specific-guidance-for-important-traits (Default when there is a `new()`)
+new_without_default = "warn"
+
+# ---- Naming ----
+# https://google.github.io/styleguide/rustguide.html#naming-methods
+wrong_self_convention = "warn"
+# https://google.github.io/styleguide/rustguide.html#naming-initialization-functions
+new_ret_no_self = "warn"
+
+# ---- Documentation ----
+# https://google.github.io/styleguide/rustguide.html#when-and-how-to-write-documentation
+missing_panics_doc = "warn"
+missing_errors_doc = "warn"
+missing_safety_doc = "warn"
+doc_markdown = "warn"
+
+# ---- Other Rust features ----
+# https://google.github.io/styleguide/rustguide.html#unsafe-code
+undocumented_unsafe_blocks = "warn"
+unnecessary_safety_comment = "warn"
+# https://google.github.io/styleguide/rustguide.html#implement-expected-api-sets-together
+len_without_is_empty = "warn"
+# https://google.github.io/styleguide/rustguide.html#apply-non_exhaustive-to-publicly-exposed-enums
+exhaustive_enums = "warn"
+# https://google.github.io/styleguide/rustguide.html#apply-non_exhaustive-to-public-structs-with-public-fields
+exhaustive_structs = "warn"
+# https://google.github.io/styleguide/rustguide.html#must_use-on-functions
+must_use_candidate = "warn"
+# https://google.github.io/styleguide/rustguide.html#avoid-rc-and-arc, #handling-poison, #dont-call-paniccatch_unwind (lists in clippy.toml)
+disallowed_types = "warn"
+disallowed_methods = "warn"
+
+# ---- Implementation concerns ----
+# https://google.github.io/styleguide/rustguide.html#prefer-pattern-matching-over-check-then-unwrap
+unnecessary_unwrap = "warn"
+# https://google.github.io/styleguide/rustguide.html#prefer-expect-over-unwrap
+unwrap_used = "warn"
+# https://google.github.io/styleguide/rustguide.html#use-context-strings-to-clarify-assertions
+missing_assert_message = "warn"
+# https://google.github.io/styleguide/rustguide.html#dont-use-iterator-combinator-chains-when-direct-iteration-is-clearer
+needless_for_each = "warn"
+# https://google.github.io/styleguide/rustguide.html#prefer-format--write-for-concatenation-and-substitution
+format_push_string = "warn"
+
+# ---- Exceptions explain themselves ----
+# Every deviation from the guide is `#[expect(clippy::lint, reason = "...")]`.
+allow_attributes_without_reason = "warn"

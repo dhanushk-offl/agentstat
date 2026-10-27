@@ -1,7 +1,17 @@
-use super::common::*;
-use crate::*;
+//! Codex usage adapter.
+
+use super::common::{
+    auth, check_source, credit_unit, date, decimal, finish, number, percent_window, push_balance,
+    text, window,
+};
+use crate::{
+    AgentStatError, Balance, Client, Credentials, FetchRequest, QuotaLimit, Result, Source,
+    UsageSnapshot, Warning, WindowKind, transport,
+};
 use reqwest::Method;
 use serde_json::Value;
+use std::time::Duration;
+use tokio::time::{self, Instant};
 
 pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnapshot> {
     if !matches!(r.credentials, Credentials::Bearer(_)) {
@@ -10,7 +20,7 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
     check_source(r, Source::OAuth)?;
     let mut headers = auth(r, "authorization", "Bearer ")?;
     if let Some(account) = &r.scope.account_id {
-        crate::transport::header(&mut headers, "chatgpt-account-id", account)?;
+        transport::header(&mut headers, "chatgpt-account-id", account)?;
     }
     let body = client
         .transport
@@ -26,18 +36,18 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
     if r.include_optional {
         let remaining = r
             .deadline
-            .map(|d| d.saturating_duration_since(tokio::time::Instant::now()))
-            .unwrap_or(std::time::Duration::from_secs(2));
+            .map(|d| d.saturating_duration_since(Instant::now()))
+            .unwrap_or(Duration::from_secs(2));
         let budget = remaining
-            .saturating_sub(std::time::Duration::from_millis(10))
-            .min(std::time::Duration::from_secs(2));
+            .saturating_sub(Duration::from_millis(10))
+            .min(Duration::from_secs(2));
         if budget.is_zero() {
             snapshot.warnings.push(Warning::OptionalFetchFailed);
             return finish(snapshot);
         }
-        crate::transport::header(&mut headers, "openai-beta", "codex-1")?;
-        crate::transport::header(&mut headers, "originator", "Codex Desktop")?;
-        let extra = tokio::time::timeout(
+        transport::header(&mut headers, "openai-beta", "codex-1")?;
+        transport::header(&mut headers, "originator", "Codex Desktop")?;
+        let extra = time::timeout(
             budget,
             client.transport.json(
                 r.provider,
@@ -65,7 +75,7 @@ pub(super) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
     }
     finish(snapshot)
 }
-fn add_windows(s: &mut UsageSnapshot, v: &Value, prefix: &str, model: Option<String>) {
+fn add_windows(s: &mut UsageSnapshot, v: &Value, prefix: &str, model: Option<&str>) {
     for (key, id) in [
         ("primary_window", "primary"),
         ("secondary_window", "secondary"),
@@ -81,7 +91,7 @@ fn add_windows(s: &mut UsageSnapshot, v: &Value, prefix: &str, model: Option<Str
                 w["limit_window_seconds"].as_u64(),
                 date(&w["reset_at"]),
             );
-            out.model = model.clone();
+            out.model = model.map(str::to_owned);
             out.kind = WindowKind::Rolling;
             s.windows.push(out);
         } else {
@@ -120,7 +130,7 @@ pub(super) fn parse(r: &FetchRequest, v: &Value) -> Result<UsageSnapshot> {
                 || format!("additional-{i}-"),
                 |model| format!("model-{model}-"),
             );
-            add_windows(&mut s, &extra["rate_limit"], &prefix, model);
+            add_windows(&mut s, &extra["rate_limit"], &prefix, model.as_deref());
         }
     } else if !v["additional_rate_limits"].is_null() {
         s.warnings.push(Warning::MalformedOptionalData)

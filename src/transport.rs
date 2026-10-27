@@ -1,22 +1,38 @@
+//! HTTP execution, response limits, and endpoint validation.
+
+#![expect(
+    clippy::disallowed_types,
+    reason = "the executor is shared by cloned transports during concurrent requests"
+)]
+
 use crate::{AgentStatError, ProviderId, Result};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use futures::future::BoxFuture;
-use reqwest::{
-    Method, Url,
-    header::{HeaderMap, HeaderValue},
-};
+use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::{Method, Request, Url};
 use serde_json::Value;
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::collections::HashMap;
+use std::fmt;
+use std::net::IpAddr;
+use std::sync::Arc;
+use std::time::Duration;
 
 /// A response from a caller-supplied HTTP executor. Header/body values are never logged.
 #[derive(Clone)]
+#[expect(
+    clippy::exhaustive_structs,
+    reason = "public struct literals are part of the existing crate API"
+)]
 pub struct HttpResponse {
+    /// HTTP response status code.
     pub status: u16,
+    /// Response header values.
     pub headers: HeaderMap,
+    /// Response body bytes.
     pub body: Vec<u8>,
 }
-impl std::fmt::Debug for HttpResponse {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for HttpResponse {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("HttpResponse")
             .field("status", &self.status)
             .field("body_bytes", &self.body.len())
@@ -26,8 +42,9 @@ impl std::fmt::Debug for HttpResponse {
 /// Optional integration point for custom networking and deterministic tests.
 /// Executors must not follow redirects or retry requests and must honor future cancellation.
 /// The default executor uses reqwest; custom executors own their network buffering limits.
-pub trait HttpExecutor: Send + Sync + std::fmt::Debug {
-    fn execute(&self, request: reqwest::Request) -> BoxFuture<'_, Result<HttpResponse>>;
+pub trait HttpExecutor: Send + Sync + fmt::Debug {
+    /// Executes a request without redirects or retries and returns its raw response.
+    fn execute(&self, request: Request) -> BoxFuture<'_, Result<HttpResponse>>;
 }
 #[derive(Debug, Clone)]
 pub(crate) struct Transport {
@@ -106,11 +123,9 @@ impl Transport {
     }
 }
 pub(crate) fn validate_url(url: &Url) -> Result<()> {
-    let loopback = url.host_str().is_some_and(|h| {
-        h == "localhost"
-            || h.parse::<std::net::IpAddr>()
-                .is_ok_and(|ip| ip.is_loopback())
-    });
+    let loopback = url
+        .host_str()
+        .is_some_and(|h| h == "localhost" || h.parse::<IpAddr>().is_ok_and(|ip| ip.is_loopback()));
     if !url.username().is_empty()
         || url.password().is_some()
         || url.fragment().is_some()
@@ -125,8 +140,7 @@ pub(crate) fn validate_url(url: &Url) -> Result<()> {
 fn parse_retry_after(value: Option<&HeaderValue>) -> Option<DateTime<Utc>> {
     let raw = value?.to_str().ok()?.trim();
     if let Ok(seconds) = raw.parse::<u64>() {
-        Utc::now()
-            .checked_add_signed(chrono::Duration::from_std(Duration::from_secs(seconds)).ok()?)
+        Utc::now().checked_add_signed(ChronoDuration::from_std(Duration::from_secs(seconds)).ok()?)
     } else {
         httpdate::parse_http_date(raw)
             .ok()

@@ -1,10 +1,9 @@
 //! Real reqwest wiring, run explicitly in CI because agent sandboxes may deny sockets.
 #![cfg(feature = "codex")]
 use agentstat::*;
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpListener,
-};
+use std::time::Duration;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpListener;
 #[tokio::test]
 #[ignore = "requires loopback sockets; CI runs this explicitly"]
 async fn reqwest_fetch_and_redirect_policy() {
@@ -34,7 +33,7 @@ async fn reqwest_fetch_and_redirect_policy() {
         let client = Client::builder()
             .endpoint_override(ProviderId::Codex, &base)
             .http_client_builder(reqwest::Client::builder().no_proxy())
-            .timeout(std::time::Duration::from_secs(2))
+            .timeout(Duration::from_secs(2))
             .build()
             .unwrap();
         let result = client

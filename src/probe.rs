@@ -1,9 +1,34 @@
-use crate::*;
+//! Audited local usage probes with bounded output and deadlines.
+
+#[cfg(unix)]
+use crate::CredentialSource;
+#[cfg(all(feature = "opencode-local", unix))]
+use crate::opencode_local;
+#[cfg(unix)]
+use crate::providers;
+use crate::{
+    AgentStatError, Client, Credentials, FetchRequest, ProviderConfig, ProviderId, Result, Source,
+    UsageSnapshot,
+};
+#[cfg(unix)]
+use nix::sys::signal::{self, Signal};
+#[cfg(unix)]
+use nix::unistd::Pid;
+#[cfg(unix)]
+use std::collections::BTreeMap;
+#[cfg(all(feature = "opencode-local", unix))]
+use std::path::Path;
+#[cfg(unix)]
+use std::time::Duration;
 #[cfg(unix)]
 use tokio::io::AsyncReadExt;
+#[cfg(unix)]
+use tokio::process::Command;
+#[cfg(unix)]
+use tokio::time;
 
 pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnapshot> {
-    if !client.local_probes {
+    if !client.local_access.probes() {
         return Err(AgentStatError::LocalAccessDisabled);
     }
     if !matches!(r.provider, ProviderId::CodeRabbit | ProviderId::Antigravity)
@@ -32,7 +57,8 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
     }
     #[cfg(unix)]
     {
-        use std::{os::unix::process::CommandExt, process::Stdio};
+        use std::os::unix::process::CommandExt;
+        use std::process::Stdio;
         let path = client
             .probe_executables
             .get(&r.provider)
@@ -46,7 +72,7 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
                     "coderabbit".into()
                 }
             });
-        let mut command = tokio::process::Command::new(&path);
+        let mut command = Command::new(&path);
         if r.provider == ProviderId::Antigravity {
             command
                 .args([
@@ -80,7 +106,7 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
         }
         let mut child = command.spawn().map_err(|_| AgentStatError::Probe)?;
         let guard = (r.provider != ProviderId::OpenCode)
-            .then(|| ProcessGroup(child.id().map(|id| nix::unistd::Pid::from_raw(id as i32))));
+            .then(|| ProcessGroup(child.id().map(|id| Pid::from_raw(id as i32))));
         let mut out = Vec::new();
         let max_bytes = if r.provider == ProviderId::OpenCode {
             1024 * 1024
@@ -111,11 +137,11 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
                 let body = serde_json::from_str(&text).map_err(|_| {
                     AgentStatError::InvalidResponse("expected Antigravity usage JSON")
                 })?;
-                crate::providers::parse_antigravity_probe(r, &body)
+                providers::parse_antigravity_probe(r, &body)
             } else if r.provider == ProviderId::OpenCode {
                 #[cfg(feature = "opencode-local")]
                 {
-                    crate::opencode_local::parse(r, &text)
+                    opencode_local::parse(r, &text)
                 }
                 #[cfg(not(feature = "opencode-local"))]
                 {
@@ -130,7 +156,7 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
         } else {
             15
         };
-        let result = tokio::time::timeout(std::time::Duration::from_secs(timeout), operation)
+        let result = time::timeout(Duration::from_secs(timeout), operation)
             .await
             .map_err(|_| AgentStatError::Timeout)?;
         drop(guard);
@@ -138,9 +164,9 @@ pub(crate) async fn fetch(client: &Client, r: &FetchRequest) -> Result<UsageSnap
     }
 }
 #[cfg(all(feature = "opencode-local", unix))]
-async fn opencode_text(path: &std::path::Path, r: &FetchRequest) -> Result<UsageSnapshot> {
+async fn opencode_text(path: &Path, r: &FetchRequest) -> Result<UsageSnapshot> {
     use std::process::Stdio;
-    let mut command = tokio::process::Command::new(path);
+    let mut command = Command::new(path);
     command
         .args(["stats", "--days", "30"])
         .env("OPENCODE_DISABLE_AUTOUPDATE", "true")
@@ -154,7 +180,7 @@ async fn opencode_text(path: &std::path::Path, r: &FetchRequest) -> Result<Usage
     let mut child = command.spawn().map_err(|_| AgentStatError::Probe)?;
     let mut out = Vec::new();
     let output = child.stdout.take().ok_or(AgentStatError::Probe)?;
-    tokio::time::timeout(std::time::Duration::from_secs(25), async {
+    time::timeout(Duration::from_secs(25), async {
         output
             .take(128 * 1024 + 1)
             .read_to_end(&mut out)
@@ -173,24 +199,24 @@ async fn opencode_text(path: &std::path::Path, r: &FetchRequest) -> Result<Usage
         }
         let text = String::from_utf8(out)
             .map_err(|_| AgentStatError::InvalidResponse("OpenCode CLI output is not UTF-8"))?;
-        crate::opencode_local::parse_text(r, &text)
+        opencode_local::parse_text(r, &text)
     })
     .await
     .map_err(|_| AgentStatError::Timeout)?
 }
 #[cfg(unix)]
-struct ProcessGroup(Option<nix::unistd::Pid>);
+struct ProcessGroup(Option<Pid>);
 #[cfg(unix)]
 impl Drop for ProcessGroup {
     fn drop(&mut self) {
         if let Some(pid) = self.0 {
-            let _ = nix::sys::signal::killpg(pid, nix::sys::signal::Signal::SIGKILL);
+            let _ = signal::killpg(pid, Signal::SIGKILL);
         }
     }
 }
 #[cfg(unix)]
 fn parse(r: &FetchRequest, text: &str) -> Result<UsageSnapshot> {
-    let mut fields = std::collections::BTreeMap::new();
+    let mut fields = BTreeMap::new();
     // Strip terminal CSI sequences without interpreting terminal control input.
     let mut clean = String::new();
     let mut chars = text.chars();
@@ -223,6 +249,6 @@ fn parse(r: &FetchRequest, text: &str) -> Result<UsageSnapshot> {
     let mut s = UsageSnapshot::new(r, Source::LocalProbe);
     s.credential_source = CredentialSource::LocalProbe;
     s.plan = fields.get("plan").map(|s| s.to_string());
-    s.windows.push(crate::providers::probe_window(used));
+    s.windows.push(providers::probe_window(used));
     Ok(s)
 }

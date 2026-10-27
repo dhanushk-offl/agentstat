@@ -1,0 +1,14 @@
+# cargo-deny configuration for the Google Rust style guide. Run with `cargo deny check bans`.
+# Guide: https://google.github.io/styleguide/rustguide.html
+
+[graph]
+all-features = true
+
+[bans]
+multiple-versions = "warn"
+deny = [
+    # #do-not-run-code-before-main: these crates run code before `main()` via linker sections.
+    { crate = "ctor", reason = "runs code before main() (guide: do not run code before main)" },
+    { crate = "inventory", reason = "registers items before main() through ctor-style constructors (guide: do not run code before main)" },
+    { crate = "static_init", reason = "runs initializers before main() (guide: do not run code before main)" },
+]
